@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Author: Niccolò Bonacchi
 # @Date:   2018-02-02 12:31:13
-# edited by Anne Urai, CSHL, 2019
 import logging
-import time
 
 import matplotlib.pyplot as plt
 from pybpod_rotaryencoder_module.module import RotaryEncoder
@@ -13,7 +11,6 @@ from pybpodapi.protocol import Bpod, StateMachine
 import online_plots as op
 import task_settings
 import user_settings
-from iblrig.user_input import ask_session_delay
 from session_params import SessionParamHandler
 from trial_params import TrialParamHandler
 
@@ -28,26 +25,6 @@ def bpod_loop_handler():
     f.canvas.flush_events()  # 100µs
 
 
-def softcode_handler(data):
-    """
-    Soft codes should work with resasonable latency considering our limiting
-    factor is the refresh rate of the screen which should be 16.667ms @ a frame
-    rate of 60Hz
-    1 : go_tone
-    2 : white_noise
-    """
-    global sph
-    if data == 0:
-        sph.stop_sound()
-    elif data == 1:
-        sph.play_tone()
-    elif data == 2:
-        sph.play_noise()
-    elif data == 3:
-        sph.start_camera_recording()
-    # sph.OSC_CLIENT.send_message("/e", data)
-
-
 # =============================================================================
 # CONNECT TO BPOD
 # =============================================================================
@@ -55,10 +32,9 @@ bpod = Bpod()
 
 # Loop handler function is used to flush events for the online plotting
 bpod.loop_handler = bpod_loop_handler
-# Soft code handler function can run arbitrary code from within state machine
-bpod.softcode_handler_function = softcode_handler
 # Rotary Encoder State Machine handler
 rotary_encoder = [x for x in bpod.modules if x.name == 'RotaryEncoder1'][0]
+sound_card = [x for x in bpod.modules if x.name == 'SoundCard1'][0]
 # ROTARY ENCODER SEVENTS
 # Set RE position to zero 'Z' + eneable all RE thresholds 'E'
 # re_reset = rotary_encoder.create_resetpositions_trigger()
@@ -75,32 +51,28 @@ bpod.load_serial_message(rotary_encoder, re_show_stim, [ord('#'), 2])
 # Close loop
 re_close_loop = re_reset + 3
 bpod.load_serial_message(rotary_encoder, re_close_loop, [ord('#'), 3])
-
-if sph.SOFT_SOUND is None:
-    # SOUND CARD
-    sound_card = [x for x in bpod.modules if x.name == 'SoundCard1'][0]
-    # Play tone
-    sc_play_tone = re_reset + 4
-    bpod.load_serial_message(sound_card, sc_play_tone, [ord('P'), sph.GO_TONE_IDX])
-    # Play noise
-    sc_play_noise = re_reset + 5
-    bpod.load_serial_message(sound_card, sc_play_noise, [
-                             ord('P'), sph.WHITE_NOISE_IDX])
-# # Delay initiation
-# delay = ask_session_delay(sph.SETTINGS_FILE_PATH)
-# log.info(f"Starting {delay} seconds of delay (i.e. {delay/60} minutes)")
-# time.sleep(delay)
-# log.info(f"Resuming task after {delay} seconds of delay (i.e. {delay/60} minutes)")
+# Play tone
+sc_play_tone = re_reset + 4
+bpod.load_serial_message(sound_card, sc_play_tone, [ord('P'), sph.GO_TONE_IDX])
+# Play noise
+sc_play_noise = re_reset + 5
+bpod.load_serial_message(sound_card, sc_play_noise, [
+                         ord('P'), sph.WHITE_NOISE_IDX])
 
 # =============================================================================
 # TRIAL PARAMETERS AND STATE MACHINE
 # =============================================================================
 global tph
+log.debug('Call tph creation')
 tph = TrialParamHandler(sph)
+log.debug('TPH CREATED!')
 
+log.debug('make fig')
 f, axes = op.make_fig(sph)
+log.debug('pause')
 plt.pause(1)
 
+log.debug('start SM definition')
 for i in range(sph.NTRIALS):  # Main loop
     tph.next_trial()
     log.info(f'Starting trial: {i + 1}')
@@ -108,20 +80,19 @@ for i in range(sph.NTRIALS):  # Main loop
 #     Start state machine definition
 # =============================================================================
     sma = StateMachine(bpod)
-
-    if i == 0:  # First trial exception start camera
+    if i == 0:
         log.info(f'Waiting for camera pulses...')
         sma.add_state(
             state_name='trial_start',
-            state_timer=3600,
+            state_timer=3600,  # ~100µs hardware irreducible delay
             state_change_conditions={'Port1In': 'reset_rotary_encoder'},
-            output_actions=[('SoftCode', 3)])  # sart camera
+            output_actions=[('BNC1', 255)])  # To FPGA
     else:
         sma.add_state(
             state_name='trial_start',
             state_timer=0,  # ~100µs hardware irreducible delay
             state_change_conditions={'Tup': 'reset_rotary_encoder'},
-            output_actions=[tph.out_stop_sound])  # stop all sounds
+            output_actions=[('BNC1', 255)])  # To FPGA
 
     sma.add_state(
         state_name='reset_rotary_encoder',
@@ -155,7 +126,7 @@ for i in range(sph.NTRIALS):  # Main loop
 
     sma.add_state(
         state_name='play_tone',
-        state_timer=0.1,
+        state_timer=0.001,
         state_change_conditions={
             'Tup': 'reset2_rotary_encoder',
             'BNC2High': 'reset2_rotary_encoder'
@@ -181,19 +152,20 @@ for i in range(sph.NTRIALS):  # Main loop
         state_timer=tph.iti_error,
         state_change_conditions={'Tup': 'exit_state'},
         output_actions=[('Serial1', re_stop_stim),
-                        tph.out_noise])
+                        ('Serial3', sc_play_noise)])
 
     sma.add_state(
         state_name='error',
         state_timer=tph.iti_error,
         state_change_conditions={'Tup': 'exit_state'},
-        output_actions=[tph.out_noise])
+        output_actions=[('Serial3', sc_play_noise)])
 
     sma.add_state(
         state_name='reward',
         state_timer=tph.reward_valve_time,
         state_change_conditions={'Tup': 'correct'},
-        output_actions=[('Valve1', 255), tph.out_correct_tone])
+        output_actions=[('Valve1', 255),
+                        ('BNC1', 255)])  # To FPGA
 
     sma.add_state(
         state_name='correct',
@@ -205,8 +177,12 @@ for i in range(sph.NTRIALS):  # Main loop
         state_name='exit_state',
         state_timer=0.5,
         state_change_conditions={'Tup': 'exit'},
-        output_actions=[('Serial1', re_stop_stim)])
+        output_actions=[('BNC1', 255),
+                        ('Serial1', re_stop_stim),
+                        ])
 
+    # if i == 0:
+    #     sph.warn_ephys()
     # Send state machine description to Bpod device
     bpod.send_state_machine(sma)
     # Run state machine
@@ -221,7 +197,6 @@ for i in range(sph.NTRIALS):  # Main loop
 
     tph.check_sync_pulses()
     stop_crit = tph.check_stop_criterions()
-
     if stop_crit and sph.USE_AUTOMATIC_STOPPING_CRITERIONS:
         if stop_crit == 1:
             msg = "STOPPING CRITERIA Nº1: PLEASE STOP TASK AND REMOVE MOUSE\

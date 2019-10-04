@@ -190,7 +190,7 @@ def sound_sample_freq(soft_sound):
         raise(NotImplementedError)
 
 
-def init_sounds(sph, tone=True, noise=True):
+def init_sounds(sph, tone=True, noise=True, correct_tone=True):
     if sph.SOFT_SOUND is None:
         msg = f"""
     ##########################################
@@ -225,6 +225,16 @@ def init_sounds(sph, tone=True, noise=True):
             amplitude=sph.WHITE_NOISE_AMPLITUDE,
             fade=0.01,
             chans=chans)
+
+    if correct_tone:
+        sph.GO_TONE = make_sound(
+            rate=sph.SOUND_SAMPLE_FREQ,
+            frequency=sph.CORRECT_TONE_FREQUENCY,
+            duration=sph.CORRECT_TONE_DURATION,
+            amplitude=sph.CORRECT_TONE_AMPLITUDE,
+            fade=0.01,
+            chans=chans)
+
     return sph
 
 

@@ -4,8 +4,10 @@
 # @Date:   2018-02-02 17:19:09
 import logging
 import os
+import tkinter as tk
 from pathlib import Path
 from sys import platform
+from tkinter import messagebox
 
 from pythonosc import udp_client
 
@@ -16,7 +18,7 @@ import iblrig.frame2TTL as frame2TTL
 import iblrig.iotasks as iotasks
 import iblrig.misc as misc
 import iblrig.sound as sound
-import iblrig.user_input as user
+import iblrig.user_input as user_input
 from iblrig.path_helper import SessionPathCreator
 from iblrig.rotary_encoder import MyRotaryEncoder
 
@@ -30,7 +32,9 @@ class SessionParamHandler(object):
 
     def __init__(self, task_settings, user_settings, debug=False, fmake=True):
         self.DEBUG = debug
-        make = False if not fmake else ['video']
+        make = True
+        self.IBLRIG_FOLDER = 'C:\\iblrig'
+        self.IBLRIG_DATA_FOLDER = None  # ..\\iblrig_data if None
         # =====================================================================
         # IMPORT task_settings, user_settings, and SessionPathCreator params
         # =====================================================================
@@ -45,19 +49,32 @@ class SessionParamHandler(object):
                                  protocol=self.PYBPOD_PROTOCOL,
                                  make=make)
         self.__dict__.update(spc.__dict__)
+        # =====================================================================
+        # SETTINGS
+        # =====================================================================
+        self.RECORD_SOUND = False
+        self.RECORD_AMBIENT_SENSOR_DATA = True
+        self.RECORD_VIDEO = False
+        self.OPEN_CAMERA_VIEW = True  # Always True if RECORD_VIDEO is True
 
-        # =====================================================================
-        # COMs and devices
-        # =====================================================================
-
-        # =====================================================================
-        # frame2TTL
-        # =====================================================================
-        self.F2TTL_GET_AND_SET_THRESHOLDS = frame2TTL.get_and_set_thresholds()
+        self.NTRIALS = 200  # Number of trials for the current session
+        self.USE_AUTOMATIC_STOPPING_CRITERIONS = True  # Weather to check for the Automatic stopping criterions or not  # noqa
+        self.REPEAT_ON_ERROR = False  # not used
+        self.INTERACTIVE_DELAY = 0.0
+        self.RESPONSE_WINDOW = 60
+        self.ITI_CORRECT = 0.1
+        self.ITI_ERROR = 0.5
+        self.CONTRAST_SET = [1., 0.25, 0.125, 0.0625, 0.]  # Full contrast set
+        self.CONTRAST_SET_PROBABILITY_TYPE = 'biased'
+        self.STIM_FREQ = 0.10  # Probably constant - NOT IN USE
+        self.STIM_ANGLE = 0.  # Vertical orientation of Gabor patch
+        self.STIM_SIGMA = 7.  # (azimuth_degree) Size of Gabor patch
+        self.STIM_GAIN = 4.  # (azimuth_degree/mm) Gain of the RE
         # =====================================================================
         # SUBJECT
         # =====================================================================
-        self.SUBJECT_WEIGHT = user.ask_subject_weight(self.PYBPOD_SUBJECTS[0])
+        # self.SUBJECT_WEIGHT = self.ask_subject_weight()
+        self.POOP_COUNT = False
         self.SUBJECT_DISENGAGED_TRIGGERED = False
         self.SUBJECT_DISENGAGED_TRIALNUM = None
         # =====================================================================
@@ -73,9 +90,28 @@ class SessionParamHandler(object):
         self.LAST_TRIAL_DATA = iotasks.load_data(self.PREVIOUS_SESSION_PATH)
         self.LAST_SETTINGS_DATA = iotasks.load_settings(
             self.PREVIOUS_SESSION_PATH)
+
+        # FIX THE SPECIFIC SEQUENCE
+        self.SESSION_ORDER = [0, 2, 3, 1, 4, 7, 5, 6, 9, 10, 11, 8]
+        self.SESSION_IDX = 1
+        # self = iotasks.load_session_order_and_idx(self)
+
+        # Load from file
+        self.POSITIONS = None
+        self.CONTRASTS = None
+        self.QUIESCENT_PERIOD = None
+        self.STIM_PHASE = None
+        self.LEN_BLOCKS = None
+        self = iotasks.load_session_pcqs(self)
+        
         # =====================================================================
         # ADAPTIVE STUFF
         # =====================================================================
+        self.AUTOMATIC_CALIBRATION = True
+        self.CALIBRATION_VALUE = 0.067
+        self.REWARD_AMOUNT = 3.
+        self.REWARD_TYPE = 'Water 10% Sucrose'
+
         self.CALIB_FUNC = None
         if self.AUTOMATIC_CALIBRATION:
             self.CALIB_FUNC = adaptive.init_calib_func(self.LATEST_WATER_CALIBRATION_FILE)
@@ -85,56 +121,65 @@ class SessionParamHandler(object):
         # =====================================================================
         # ROTARY ENCODER
         # =====================================================================
+        self.STIM_POSITIONS = [-35, 35]  # All possible positions (deg)
+        self.QUIESCENCE_THRESHOLDS = [-2, 2]  # degree
         self.ALL_THRESHOLDS = (self.STIM_POSITIONS +
                                self.QUIESCENCE_THRESHOLDS)
         self.ROTARY_ENCODER = MyRotaryEncoder(self.ALL_THRESHOLDS,
                                               self.STIM_GAIN,
                                               self.PARAMS['COM_ROTARY_ENCODER'])
         # =====================================================================
+        # frame2TTL
+        # =====================================================================
+        self.F2TTL_GET_AND_SET_THRESHOLDS = frame2TTL.get_and_set_thresholds()
+        # =====================================================================
         # SOUNDS
         # =====================================================================
-        self.SOFT_SOUND = None if 'ephys' in self._BOARD else self.SOFT_SOUND
+        self.SOFT_SOUND = None
         self.SOUND_SAMPLE_FREQ = sound.sound_sample_freq(self.SOFT_SOUND)
+        self.SOUND_BOARD_BPOD_PORT = 'Serial3'
+        self.WHITE_NOISE_DURATION = float(0.5)
+        self.WHITE_NOISE_AMPLITUDE = float(0.05)
+        self.GO_TONE_DURATION = float(0.1)
+        self.GO_TONE_FREQUENCY = int(5000)
+        self.GO_TONE_AMPLITUDE = float(0.0151)  # 0.0151 for 70.0 dB SPL CCU
 
-        self.WHITE_NOISE_DURATION = float(self.WHITE_NOISE_DURATION)
-        self.WHITE_NOISE_AMPLITUDE = float(self.WHITE_NOISE_AMPLITUDE)
-        self.GO_TONE_DURATION = float(self.GO_TONE_DURATION)
-        self.GO_TONE_FREQUENCY = int(self.GO_TONE_FREQUENCY)
-        self.GO_TONE_AMPLITUDE = float(self.GO_TONE_AMPLITUDE)
-
-        self.CORRECT_TONE_DURATION = float(self.CORRECT_TONE_DURATION)
-        self.CORRECT_TONE_FREQUENCY = int(self.CORRECT_TONE_FREQUENCY)
-        self.CORRECT_TONE_AMPLITUDE = float(self.CORRECT_TONE_AMPLITUDE)
-        
         self.SD = sound.configure_sounddevice(
             output=self.SOFT_SOUND, samplerate=self.SOUND_SAMPLE_FREQ)
-            
         # Create sounds and output actions of state machine
-        self.GO_TONE = None
-        self.WHITE_NOISE = None
-        self.CORRECT_TONE = None
-        self = sound.init_sounds(self)  # sets GO_TONE and WHITE_NOISE
-
-        # SoundCard config params
-        self.SOUND_BOARD_BPOD_PORT = 'Serial3'
+        self.GO_TONE = sound.make_sound(
+            rate=self.SOUND_SAMPLE_FREQ, frequency=self.GO_TONE_FREQUENCY,
+            duration=self.GO_TONE_DURATION, amplitude=self.GO_TONE_AMPLITUDE,
+            fade=0.01, chans='stereo')
+        self.WHITE_NOISE = sound.make_sound(
+            rate=self.SOUND_SAMPLE_FREQ, frequency=-1,
+            duration=self.WHITE_NOISE_DURATION,
+            amplitude=self.WHITE_NOISE_AMPLITUDE, fade=0.01, chans='stereo')
         self.GO_TONE_IDX = 2
         self.WHITE_NOISE_IDX = 3
-        self.CORRECT_TONE_IDX = 4
-
-        if self.SOFT_SOUND is None:
-            sound.configure_sound_card(
-                sounds=[self.GO_TONE, self.WHITE_NOISE],
-                indexes=[self.GO_TONE_IDX, self.WHITE_NOISE_IDX],
-                sample_rate=self.SOUND_SAMPLE_FREQ)
-
+        sound.configure_sound_card(
+            sounds=[self.GO_TONE, self.WHITE_NOISE],
+            indexes=[self.GO_TONE_IDX, self.WHITE_NOISE_IDX],
+            sample_rate=self.SOUND_SAMPLE_FREQ)
         self.OUT_TONE = ('SoftCode', 1) if self.SOFT_SOUND else ('Serial3', 5)
         self.OUT_NOISE = ('SoftCode', 2) if self.SOFT_SOUND else ('Serial3', 6)
-        self.OUT_NOISE = ('SoftCode', 3) if self.SOFT_SOUND else ('Serial3', 7)
         self.OUT_STOP_SOUND = (
             'SoftCode', 0) if self.SOFT_SOUND else ('Serial3', ord('X'))
         # =====================================================================
-        # RUN VISUAL STIM
+        # PROBES + WEIGHT
         # =====================================================================
+        form_data = -1
+        while form_data == -1:
+            form_data = user_input.session_form(mouse_name=self.SUBJECT_NAME)
+        self.SUBJECT_WEIGHT = None
+        self.PROBE_DATA = None
+        # =====================================================================
+        # VISUAL STIM
+        # =====================================================================
+        self.SYNC_SQUARE_X = 1.33
+        self.SYNC_SQUARE_Y = -1.03
+        self.USE_VISUAL_STIMULUS = True  # Run the visual stim in bonsai
+        self.BONSAI_EDITOR = False  # Open the Bonsai editor of visual stim
         bonsai.start_visual_stim(self)
         # =====================================================================
         # SAVE SETTINGS FILE AND TASK CODE
@@ -143,8 +188,6 @@ class SessionParamHandler(object):
             iotasks.save_session_settings(self)
             iotasks.copy_task_code(self)
             iotasks.save_task_code(self)
-            iotasks.copy_video_code(self)
-            iotasks.save_video_code(self)
             self.bpod_lights(0)
 
         self.display_logs()
@@ -156,6 +199,17 @@ class SessionParamHandler(object):
         self.__dict__.update(patch)
         misc.patch_settings_file(self.SETTINGS_FILE_PATH, patch)
 
+    def warn_ephys(self):
+        title = 'START EPHYS RECODING'
+        msg = ("Please start recording in spikeglx then press OK\n" +
+               "Behavior task will run after you start the bonsai workflow")
+        # from ibllib.graphic import popup
+        # popup(title, msg)
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showinfo(title, msg)
+        root.quit()
+
     def save_ambient_sensor_reading(self, bpod_instance):
         return ambient_sensor.get_reading(bpod_instance,
                                           save_to=self.SESSION_RAW_DATA_FOLDER)
@@ -163,10 +217,6 @@ class SessionParamHandler(object):
     def bpod_lights(self, command: int):
         fpath = Path(self.IBLRIG_FOLDER) / 'scripts' / 'bpod_lights.py'
         os.system(f"python {fpath} {command}")
-
-    # Bonsai start camera called from main task file
-    def start_camera_recording(self):
-        return bonsai.start_camera_recording(self)
 
     def get_port_events(self, events, name=''):
         return misc.get_port_events(events, name=name)
@@ -203,6 +253,7 @@ class SessionParamHandler(object):
         d['SD'] = str(d['SD'])
         d['OSC_CLIENT'] = str(d['OSC_CLIENT'])
         d['CALIB_FUNC'] = str(d['CALIB_FUNC'])
+        d['CALIB_FUNC_RANGE'] = str(d['CALIB_FUNC_RANGE'])
         if isinstance(d['PYBPOD_SUBJECT_EXTRA'], list):
             sub = []
             for sx in d['PYBPOD_SUBJECT_EXTRA']:
@@ -213,6 +264,11 @@ class SessionParamHandler(object):
                 d['PYBPOD_SUBJECT_EXTRA'])
         d['LAST_TRIAL_DATA'] = None
         d['LAST_SETTINGS_DATA'] = None
+        d['POSITIONS'] = None
+        d['CONTRASTS'] = None
+        d['QUIESCENT_PERIOD'] = None
+        d['STIM_PHASE'] = None
+        d['LEN_BLOCKS'] = None
 
         return d
 
@@ -221,13 +277,12 @@ class SessionParamHandler(object):
             msg = f"""
 ##########################################
 PREVIOUS SESSION FOUND
-LOADING PARAMETERS FROM:       {self.PREVIOUS_DATA_FILE}
+LOADING PARAMETERS FROM: {self.PREVIOUS_DATA_FILE}
 
-PREVIOUS NTRIALS:              {self.LAST_TRIAL_DATA["trial_num"]}
-PREVIOUS WATER DRANK:          {self.LAST_TRIAL_DATA['water_delivered']}
-LAST REWARD:                   {self.LAST_TRIAL_DATA["reward_amount"]}
-LAST GAIN:                     {self.LAST_TRIAL_DATA["stim_gain"]}
-PREVIOUS WEIGHT:               {self.LAST_SETTINGS_DATA['SUBJECT_WEIGHT']}
+PREVIOUS SESSION NUMBER: {self.LAST_SETTINGS_DATA['SESSION_IDX'] + 1}
+PREVIOUS NTRIALS:        {self.LAST_TRIAL_DATA["trial_num"]}
+PREVIOUS WATER DRANK:    {self.LAST_TRIAL_DATA['water_delivered']}
+PREVIOUS WEIGHT:         {self.LAST_SETTINGS_DATA['SUBJECT_WEIGHT']}
 ##########################################"""
             log.info(msg)
 
@@ -242,8 +297,7 @@ if __name__ == '__main__':
         turning off lights of bpod board
     """
     import task_settings as _task_settings
-    # import scratch._user_settings as _user_settings
-    import _user_settings
+    import scratch._user_settings as _user_settings
     import datetime
     dt = datetime.datetime.now()
     dt = [str(dt.year), str(dt.month), str(dt.day),
@@ -259,8 +313,8 @@ if __name__ == '__main__':
         d = ("/home/nico/Projects/IBL/github/iblrig/scratch/" +
              "test_iblrig_data")
         _task_settings.IBLRIG_DATA_FOLDER = d
-    _task_settings.USE_VISUAL_STIMULUS = False
-    _task_settings.AUTOMATIC_CALIBRATION = False
+        _task_settings.AUTOMATIC_CALIBRATION = False
+        _task_settings.USE_VISUAL_STIMULUS = False
 
     sph = SessionParamHandler(_task_settings, _user_settings,
                               debug=False, fmake=True)

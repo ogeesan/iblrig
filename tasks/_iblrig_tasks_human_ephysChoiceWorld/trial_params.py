@@ -5,8 +5,6 @@
 import datetime
 import json
 import logging
-import math
-import random
 import time
 
 import numpy as np
@@ -40,8 +38,6 @@ class TrialParamHandler(object):
         self.contrast_set_probability_type = sph.CONTRAST_SET_PROBABILITY_TYPE
         self.repeat_on_error = sph.REPEAT_ON_ERROR
         self.threshold_events_dict = sph.ROTARY_ENCODER.THRESHOLD_EVENTS
-        self.quiescent_period_base = sph.QUIESCENT_PERIOD
-        self.quiescent_period = self.quiescent_period_base + misc.texp()
         self.response_window = sph.RESPONSE_WINDOW
         self.interactive_delay = sph.INTERACTIVE_DELAY
         self.iti_error = sph.ITI_ERROR
@@ -54,7 +50,6 @@ class TrialParamHandler(object):
         self.out_tone = sph.OUT_TONE
         self.out_noise = sph.OUT_NOISE
         self.out_stop_sound = sph.OUT_STOP_SOUND
-        self.out_correct_tone = sph.OUT_CORRECT_TONE
         self.poop_count = sph.POOP_COUNT
         self.save_ambient_data = sph.RECORD_AMBIENT_SENSOR_DATA
         self.as_data = {'Temperature_C': -1, 'AirPressure_mb': -1,
@@ -65,25 +60,23 @@ class TrialParamHandler(object):
         self.iti_correct = self.iti_correct_target - self.reward_valve_time
         # Initialize parameters that may change every trial
         self.trial_num = 0
-        self.stim_phase = 0.
+        self.position_buffer = sph.POSITIONS
+        self.contrast_buffer = sph.CONTRASTS
+        self.quiescent_period_buffer = sph.QUIESCENT_PERIOD
+        self.stim_phase_buffer = sph.STIM_PHASE
+        self.len_blocks_buffer = sph.LEN_BLOCKS
+
+        self.position = int(self.position_buffer[0])
+        self.contrast = self.contrast_buffer[0]
+        self.quiescent_period = self.quiescent_period_buffer[0]
+        self.stim_phase = self.stim_phase_buffer[0]
+        self.block_len = self.len_blocks_buffer[0]
 
         self.block_num = 0
         self.block_trial_num = 0
-        self.block_len_factor = sph.BLOCK_LEN_FACTOR
-        self.block_len_min = sph.BLOCK_LEN_MIN
-        self.block_len_max = sph.BLOCK_LEN_MAX
-        self.block_probability_set = sph.BLOCK_PROBABILITY_SET
-        self.block_init_5050 = sph.BLOCK_INIT_5050
-        self.block_len = blocks.init_block_len(self)
-        # Position
-        self.stim_probability_left = blocks.init_probability_left(self)
+
+        self.stim_probability_left = 0.5
         self.stim_probability_left_buffer = [self.stim_probability_left]
-        self.position = blocks.draw_position(
-            self.position_set, self.stim_probability_left)
-        self.position_buffer = [self.position]
-        # Contrast
-        self.contrast = misc.draw_contrast(self.contrast_set)
-        self.contrast_buffer = [self.contrast]
         self.signed_contrast = self.contrast * np.sign(self.position)
         self.signed_contrast_buffer = [self.signed_contrast]
         # RE event names
@@ -162,22 +155,22 @@ RELATIVE HUMIDITY:    {self.as_data['RelativeHumidity']} %
         # Increment trial number
         self.trial_num += 1
         # Update quiescent period
-        self.quiescent_period = self.quiescent_period_base + misc.texp()
+        self.quiescent_period = self.quiescent_period_buffer[self.trial_num - 1]
         # Update stimulus phase
-        self.stim_phase = random.uniform(0, math.pi)
+        self.stim_phase = self.stim_phase_buffer[self.trial_num - 1]
         # Update block
-        self = blocks.update_block_params(self)
+        self.block_trial_num += 1
+        if self.block_trial_num > self.block_len:
+            self.block_num += 1
+            self.block_trial_num = 1
+            self.block_len = self.len_blocks_buffer[self.block_num - 1]
         # Update stim probability left + buffer
-        self.stim_probability_left = blocks.update_probability_left(self)
+        self.stim_probability_left = blocks.calc_probability_left(self)
         self.stim_probability_left_buffer.append(self.stim_probability_left)
         # Update position + buffer
-        self.position = blocks.draw_position(
-            self.position_set, self.stim_probability_left)
-        self.position_buffer.append(self.position)
+        self.position = int(self.position_buffer[self.trial_num - 1])
         # Update contrast + buffer
-        self.contrast = misc.draw_contrast(
-            self.contrast_set, prob_type=self.contrast_set_probability_type)
-        self.contrast_buffer.append(self.contrast)
+        self.contrast = self.contrast_buffer[self.trial_num - 1]
         # Update signed_contrast + buffer (AFTER position update)
         self.signed_contrast = self.contrast * np.sign(self.position)
         self.signed_contrast_buffer.append(self.signed_contrast)
@@ -240,6 +233,9 @@ RELATIVE HUMIDITY:    {self.as_data['RelativeHumidity']} %
         params['response_time_buffer'] = ''
         params['response_side_buffer'] = ''
         params['trial_correct_buffer'] = ''
+        params['quiescent_period_buffer'] = ''
+        params['stim_phase_buffer'] = ''
+        params['len_blocks_buffer'] = ''
         # Dump and save
         out = json.dumps(params, cls=ComplexEncoder)
         self.data_file.write(out)
