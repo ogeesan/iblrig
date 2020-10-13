@@ -93,6 +93,10 @@ class TrialParamHandler(object):
             self.laser_on = 0
         else:
             self.laser_on = np.random.choice([True, False])
+        if self.laser_on:
+            self.laser_out = sph.OUT_LASER_ON
+        else:
+            self.laser_out = sph.OUT_LASER_OFF
                     
         # Position
         self.stim_probability_left = blocks.init_probability_left(self)
@@ -222,9 +226,9 @@ RELATIVE HUMIDITY:    {self.as_data['RelativeHumidity']} %
         # Update if laser is on
         self.laser_on = update_laser_on(self)
         if self.laser_on:        
-            self.out_laser = OUT_LASER_ON
+            self.laser_out = OUT_LASER_ON
         else:
-            self.out_laser = OUT_LASER_OFF
+            self.laser_out = OUT_LASER_OFF
         # Update position + buffer
         self.position = blocks.draw_position(
             self.position_set, self.stim_probability_left
