@@ -22,6 +22,31 @@ from iblrig.iotasks import ComplexEncoder
 log = logging.getLogger("iblrig")
 
 
+def update_laser_block_params(tph):
+    tph.laser_block_trial_num += 1
+    if tph.laser_block_trial_num > tph.laser_block_len:
+        tph.laser_block_num += 1
+        tph.laser_block_trial_num = 1
+        tph.laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
+                                            min_=tph.laser_block_len_min,
+                                            max_=tph.laser_block_len_max))
+    return tph
+
+
+def update_laser_on(tph):
+    if tph.block_trial_num != 1:
+        return tph.laser_on
+
+    if tph.block_num == 1 and tph.block_init_5050:
+        return False
+    elif tph.block_num == 1 and not tph.block_init_5050:
+        return np.random.choice([True, False])
+    elif tph.block_num == 2 and tph.block_init_5050:
+        return np.random.choice([True, False])
+    else:
+        return not tph.laser_on  
+
+
 class TrialParamHandler(object):
     """All trial parameters for the current trial.
     On self.trial_completed a JSON serializable string containing state/event
@@ -59,6 +84,8 @@ class TrialParamHandler(object):
         self.out_noise = sph.OUT_NOISE
         self.out_stop_sound = sph.OUT_STOP_SOUND
         self.poop_count = sph.POOP_COUNT
+        self.out_laser_on = sph.OUT_LASER_ON
+        self.out_laser_off = sph.OUT_LASER_OFF
         self.save_ambient_data = sph.RECORD_AMBIENT_SENSOR_DATA
         self.as_data = {
             "Temperature_C": -1,
@@ -90,13 +117,13 @@ class TrialParamHandler(object):
         self.laser_block_len_max = sph.LASER_BLOCK_LEN_MAX
         self.laser_block_len = blocks.init_block_len(self)        
         if self.block_init_5050:
-            self.laser_on = 0
+            self.laser_on = False
         else:
             self.laser_on = np.random.choice([True, False])
         if self.laser_on:
-            self.laser_out = sph.OUT_LASER_ON
+            self.laser_out = self.out_laser_on
         else:
-            self.laser_out = sph.OUT_LASER_OFF
+            self.laser_out = self.out_laser_off
                     
         # Position
         self.stim_probability_left = blocks.init_probability_left(self)
@@ -126,29 +153,6 @@ class TrialParamHandler(object):
         self.ntrials_correct = 0
         self.water_delivered = 0
         
-        
-    def update_laser_block_params(self):
-        self.laser_block_trial_num += 1
-        if self.laser_block_trial_num > self.laser_block_len:
-            self.laser_block_num += 1
-            self.laser_block_trial_num = 1
-            self.laser_block_len = int(misc.texp(factor=self.laser_block_len_factor,
-                                                 min_=self.laser_block_len_min,
-                                                 max_=self.laser_block_len_max))
-        return self
-
-    def update_laser_on(self):
-        if self.block_trial_num != 1:
-            return self.laser_on
-    
-        if self.block_num == 1 and self.block_init_5050:
-            return False
-        elif self.block_num == 1 and not self.block_init_5050:
-            return np.random.choice([True, False])
-        elif self.block_num == 2 and self.block_init_5050:
-            return np.random.choice([True, False])
-        else:
-            return not self.laser_on  
 
     def check_stop_criterions(self):
         return misc.check_stop_criterions(
@@ -181,6 +185,7 @@ TRIAL NUM:            {self.trial_num}
 STIM POSITION:        {self.position}
 STIM CONTRAST:        {self.contrast}
 STIM PHASE:           {self.stim_phase}
+OPTO STIMULATION:     {self.laser_on}
 
 BLOCK NUMBER:         {self.block_num}
 BLOCK LENGTH:         {self.block_len}
@@ -226,9 +231,9 @@ RELATIVE HUMIDITY:    {self.as_data['RelativeHumidity']} %
         # Update if laser is on
         self.laser_on = update_laser_on(self)
         if self.laser_on:        
-            self.laser_out = OUT_LASER_ON
+            self.laser_out = self.out_laser_on
         else:
-            self.laser_out = OUT_LASER_OFF
+            self.laser_out = self.out_laser_off
         # Update position + buffer
         self.position = blocks.draw_position(
             self.position_set, self.stim_probability_left
