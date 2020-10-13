@@ -22,6 +22,15 @@ from iblrig.iotasks import ComplexEncoder
 log = logging.getLogger("iblrig")
 
 
+def init_laser_block_len(tph):
+    if tph.block_init_5050:
+        return 90
+    else:
+        return int(misc.texp(factor=tph.laser_block_len_factor,
+                             min_=tph.laser_block_len_min,
+                             max_=tph.laser_block_len_max))
+
+
 def update_laser_block_params(tph):
     tph.laser_block_trial_num += 1
     if tph.laser_block_trial_num > tph.laser_block_len:
@@ -115,7 +124,7 @@ class TrialParamHandler(object):
         self.laser_block_len_factor = sph.LASER_BLOCK_LEN_FACTOR
         self.laser_block_len_min = sph.LASER_BLOCK_LEN_MIN
         self.laser_block_len_max = sph.LASER_BLOCK_LEN_MAX
-        self.laser_block_len = blocks.init_block_len(self)        
+        self.laser_block_len = init_laser_block_len(self)        
         if self.block_init_5050:
             self.laser_on = False
         else:
