@@ -34,15 +34,18 @@ STIM_GAIN = 4.0  # (azimuth_degree/mm) Gain of the RE to stimulus movement
 SYNC_SQUARE_X = 1.33
 SYNC_SQUARE_Y = -1.03
 # BLOCKS
-BLOCK_INIT_5050 = True
+BLOCK_INIT_5050 = False
 BLOCK_PROBABILITY_SET = [0.2, 0.8]
 BLOCK_LEN_FACTOR = 60
 BLOCK_LEN_MIN = 20
 BLOCK_LEN_MAX = 100
 # LASER BLOCKS
-LASER_BLOCK_LEN_FACTOR = 60
-LASER_BLOCK_LEN_MIN = 20
-LASER_BLOCK_LEN_MAX = 100
+#LASER_BLOCK_LEN_FACTOR = 60
+#LASER_BLOCK_LEN_MIN = 20
+#LASER_BLOCK_LEN_MAX = 100
+LASER_BLOCK_LEN_FACTOR = 3
+LASER_BLOCK_LEN_MIN = 2
+LASER_BLOCK_LEN_MAX = 4
 # POSITIONS
 STIM_POSITIONS = [-35, 35]  # All possible positions for this session (deg)
 # CONTRASTS
@@ -57,4 +60,4 @@ GO_TONE_DURATION = 0.1  # Length of tone
 GO_TONE_FREQUENCY = 5000  # 5KHz
 GO_TONE_AMPLITUDE = 0.0272  # [0->1] 0.0272 for 70dB SPL Xonar
 # POOP COUNT LOGGING
-POOP_COUNT = True  # Wether to ask for a poop count at the end of the session
+POOP_COUNT = False  # Wether to ask for a poop count at the end of the session
