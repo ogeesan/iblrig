@@ -128,16 +128,23 @@ for i in range(sph.NTRIALS):  # Main loop
         state_timer=tph.quiescent_period,
         output_actions=[],
         state_change_conditions={
-            "Tup": "stim_on",
+            "Tup": "laser_on",
             tph.movement_left: "reset_rotary_encoder",
             tph.movement_right: "reset_rotary_encoder",
         },
     )
 
     sma.add_state(
+        state_name="laser_on",
+        state_timer=0,
+        output_actions=[tph.laser_out],
+        state_change_conditions={"Tup": "stim_on",},
+    )
+
+    sma.add_state(
         state_name="stim_on",
         state_timer=0.1,
-        output_actions=[("Serial1", bonsai_show_stim), tph.laser_out],
+        output_actions=[("Serial1", bonsai_show_stim)],
         state_change_conditions={
             "Tup": "interactive_delay",
             "BNC1High": "interactive_delay",
