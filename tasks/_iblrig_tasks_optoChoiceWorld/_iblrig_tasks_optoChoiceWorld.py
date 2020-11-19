@@ -138,7 +138,7 @@ for i in range(sph.NTRIALS):  # Main loop
         state_name="laser_on",
         state_timer=0,
         output_actions=[tph.laser_out],
-        state_change_conditions={"Tup": "stim_on",},
+        state_change_conditions={"Tup": "stim_on"},
     )
 
     sma.add_state(
@@ -162,7 +162,7 @@ for i in range(sph.NTRIALS):  # Main loop
     sma.add_state(
         state_name="play_tone",
         state_timer=0.1,
-        output_actions=[tph.out_tone, tph.laser_out],
+        output_actions=[tph.out_tone],
         state_change_conditions={
             "Tup": "reset2_rotary_encoder",
             "BNC2High": "reset2_rotary_encoder",
@@ -172,14 +172,14 @@ for i in range(sph.NTRIALS):  # Main loop
     sma.add_state(
         state_name="reset2_rotary_encoder",
         state_timer=0,
-        output_actions=[("Serial1", re_reset), tph.laser_out],
+        output_actions=[("Serial1", re_reset)],
         state_change_conditions={"Tup": "closed_loop"},
     )
 
     sma.add_state(
         state_name="closed_loop",
         state_timer=tph.response_window,
-        output_actions=[("Serial1", bonsai_close_loop), tph.laser_out],
+        output_actions=[("Serial1", bonsai_close_loop)],
         state_change_conditions={
             "Tup": "no_go",
             tph.event_error: "freeze_error",
@@ -190,49 +190,49 @@ for i in range(sph.NTRIALS):  # Main loop
     sma.add_state(
         state_name="no_go",
         state_timer=tph.iti_error,
-        output_actions=[("Serial1", bonsai_hide_stim), tph.out_noise, tph.laser_out],
+        output_actions=[("Serial1", bonsai_hide_stim), tph.out_noise],
         state_change_conditions={"Tup": "exit_state"},
     )
 
     sma.add_state(
         state_name="freeze_error",
         state_timer=0,
-        output_actions=[("Serial1", bonsai_freeze_stim), tph.laser_out],
+        output_actions=[("Serial1", bonsai_freeze_stim)],
         state_change_conditions={"Tup": "error"},
     )
 
     sma.add_state(
         state_name="error",
         state_timer=tph.iti_error,
-        output_actions=[tph.out_noise, tph.laser_out],
+        output_actions=[tph.out_noise],
         state_change_conditions={"Tup": "hide_stim"},
     )
 
     sma.add_state(
         state_name="freeze_reward",
         state_timer=0,
-        output_actions=[("Serial1", bonsai_freeze_stim), tph.laser_out],
+        output_actions=[("Serial1", bonsai_freeze_stim)],
         state_change_conditions={"Tup": "reward"},
     )
 
     sma.add_state(
         state_name="reward",
         state_timer=tph.reward_valve_time,
-        output_actions=[("Valve1", 255), tph.laser_out],
+        output_actions=[("Valve1", 255)],
         state_change_conditions={"Tup": "correct"},
     )
 
     sma.add_state(
         state_name="correct",
         state_timer=tph.iti_correct,
-        output_actions=[tph.laser_out],
+        output_actions=[],
         state_change_conditions={"Tup": "hide_stim"},
     )
 
     sma.add_state(
         state_name="hide_stim",
         state_timer=0.1,
-        output_actions=[("Serial1", bonsai_hide_stim)],
+        output_actions=[("Serial1", bonsai_hide_stim), tph.laser_out],
         state_change_conditions={
             "Tup": "exit_state",
             "BNC1High": "exit_state",

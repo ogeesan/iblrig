@@ -53,7 +53,7 @@ def update_laser_on(tph):
     elif tph.block_num == 2 and tph.block_init_5050:
         return np.random.choice([True, False])
     else:
-        return not tph.laser_on  
+        return not tph.laser_on
 
 
 class TrialParamHandler(object):
@@ -117,14 +117,14 @@ class TrialParamHandler(object):
         self.block_probability_set = sph.BLOCK_PROBABILITY_SET
         self.block_init_5050 = sph.BLOCK_INIT_5050
         self.block_len = blocks.init_block_len(self)
-        
+
         # Laser
         self.laser_block_num = 0
         self.laser_block_trial_num = 0
         self.laser_block_len_factor = sph.LASER_BLOCK_LEN_FACTOR
         self.laser_block_len_min = sph.LASER_BLOCK_LEN_MIN
         self.laser_block_len_max = sph.LASER_BLOCK_LEN_MAX
-        self.laser_block_len = init_laser_block_len(self)        
+        self.laser_block_len = init_laser_block_len(self)
         if self.block_init_5050:
             self.laser_on = False
         else:
@@ -133,7 +133,7 @@ class TrialParamHandler(object):
             self.laser_out = self.out_laser_on
         else:
             self.laser_out = self.out_laser_off
-                    
+
         # Position
         self.stim_probability_left = blocks.init_probability_left(self)
         self.stim_probability_left_buffer = [self.stim_probability_left]
@@ -161,7 +161,7 @@ class TrialParamHandler(object):
         self.trial_correct_buffer = []
         self.ntrials_correct = 0
         self.water_delivered = 0
-        
+
 
     def check_stop_criterions(self):
         return misc.check_stop_criterions(
@@ -239,7 +239,7 @@ RELATIVE HUMIDITY:    {self.as_data['RelativeHumidity']} %
         self = update_laser_block_params(self)
         # Update if laser is on
         self.laser_on = update_laser_on(self)
-        if self.laser_on:        
+        if self.laser_on:
             self.laser_out = self.out_laser_on
         else:
             self.laser_out = self.out_laser_off

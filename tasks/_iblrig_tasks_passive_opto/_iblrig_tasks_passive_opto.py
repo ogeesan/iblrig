@@ -67,13 +67,13 @@ def opto_stim_off(bpod, interval_duration):
 log.info("Starting %d minutes of spontaneous activity" % (sph.SPONTANEOUS_DURATION / 60))
 time.sleep(sph.SPONTANEOUS_DURATION)
 
-# start opto stim 
+# start opto stim
 log.info("Starting optogenetic stimulation")
 for i in range(sph.OPTO_TIMES):
     log.info("Stimulation %d of %d" % (i + 1, sph.OPTO_TIMES))
     opto_stim_on(bpod, sph.OPTO_DURATION)
     opto_stim_off(bpod, sph.OPTO_INTERVAL)
-    
+
 bpod.close()
 # Turn bpod light's back on
 bpod_lights(PARAMS["COM_BPOD"], 1)
@@ -82,4 +82,3 @@ log.info("Protocol finished")
 
 if __name__ == "__main__":
     pregenerated_session_num = "mock"
-   
