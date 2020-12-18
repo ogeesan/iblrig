@@ -12,7 +12,6 @@ import ibllib.io.flags as flags
 import ibllib.io.params as lib_params
 import ibllib.io.raw_data_loaders as raw
 import oneibl.params
-from ibllib.pipes.experimental_data import create
 from oneibl.one import ONE
 
 import iblrig.params as rig_params
@@ -82,5 +81,10 @@ ALF_PARAMS = {
 }
 
 
+def find_data_files(folder):
+    data_files = Path(folder).rglob("*taskData.raw.jsonable*")
+    return list(data_files)
+
 if __name__ == "__main__":
-    pass
+    folder = ALF_PARAMS['default_root_data_dir']
+    data_files = find_data_files(folder)
