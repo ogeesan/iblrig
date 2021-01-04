@@ -10,11 +10,12 @@ import numpy as np
 import ibllib.io.raw_data_loaders as raw
 
 # XXX: Make find data func
-fpath = "/home/nico/Downloads/FlatIron/mainenlab/Subjects/ZM_3003/2020-07-30/001"
+fpath = "/home/nico/Downloads/FlatIron/mainenlab/Subjects/ZM_3003/2020-07-30/001/raw_behavior_data/_iblrig_taskData.raw.jsonable"
+
 
 def load_data_from_file(fpath):
     session_path = Path(fpath).parent.parent
-    data = raw.load_data(session_path, time='raw')
+    data = raw.load_data(session_path, time="raw")
     return data
 
 
@@ -29,9 +30,7 @@ def make_fig(sub_name, sub_weight, sess_datetime):
     f.canvas.draw_idle()
     #     plt.show()
 
-    f.suptitle(
-        f"{sub_name} - {sub_weight}gr - {sess_datetime}"
-    )  # noqa
+    f.suptitle(f"{sub_name} - {sub_weight}gr - {sess_datetime}")  # noqa
 
     axes = (ax_bars, ax_psych, ax_chron, ax_vars, ax_vars2)
     return (f, axes)
@@ -54,25 +53,64 @@ def update_fig(f, axes, tph):
     f.savefig(fname)
 
 
-def get_barplot_data(tph):
+def get_barplot_data(data):
     out = {}
-    out["trial_num"] = tph.trial_num
-    out["block_num"] = tph.block_num
-    out["block_trial_num"] = tph.block_trial_num
-    out["block_len"] = tph.block_len
-    out["ntrials_correct"] = tph.ntrials_correct
+    out["trial_num"] = data[-1]['trial_num']
+    out["block_num"] = data[-1]['block_num']
+    out["block_trial_num"] = data[-1]['block_trial_num']
+    out["block_len"] = data[-1]['block_len']
+    out["ntrials_correct"] = data[-1]['ntrials_correct']
     out["ntrials_err"] = out["trial_num"] - out["ntrials_correct"]
-    out["water_delivered"] = np.round(tph.water_delivered, 3)
-    out["time_from_start"] = tph.elapsed_time
-    out["stim_pl"] = tph.stim_probability_left
+    out["water_delivered"] = np.round(data[-1]['water_delivered'], 3)
+    out["time_from_start"] = data[-1]['elapsed_time']
+    out["stim_pl"] = data[-1]['stim_probability_left']
     return out
+
+
+def get_psych_data(data):
+    sig_contrasts_all = np.array(data[-1]['contrast_set'])
+    sig_contrasts_all = np.append(sig_contrasts_all, [-x for x in sig_contrasts_all if x != 0])
+    sig_contrasts_all = np.sort(sig_contrasts_all)
+
+    signed_contrast_buffer = np.array([tr['signed_contrast'] for tr in data])
+    response_side_buffer = np.array(tph.response_side_buffer)
+    stim_probability_left_buffer = np.array(tph.stim_probability_left_buffer)
+
+    def get_prop_ccw_resp(stim_prob_left):
+        ntrials_ccw = np.array(
+            [
+                sum(
+                    response_side_buffer[
+                        (stim_probability_left_buffer == stim_prob_left)
+                        & (signed_contrast_buffer == x)
+                    ]
+                    < 0
+                )
+                for x in sig_contrasts_all
+            ]
+        )
+        ntrials = np.array(
+            [
+                sum(
+                    (signed_contrast_buffer == x)
+                    & (stim_probability_left_buffer == stim_prob_left)
+                )
+                for x in sig_contrasts_all
+            ]
+        )
+        prop_resp_ccw = [x / y if y != 0 else 0 for x, y in zip(ntrials_ccw, ntrials)]
+        return prop_resp_ccw
+
+    prop_resp_ccw02 = get_prop_ccw_resp(0.2)
+    prop_resp_ccw05 = get_prop_ccw_resp(0.5)
+    prop_resp_ccw08 = get_prop_ccw_resp(0.8)
+
+    return sig_contrasts_all, prop_resp_ccw02, prop_resp_ccw05, prop_resp_ccw08
 
 
 def get_psych_data(tph):
     sig_contrasts_all = np.array(tph.contrast_set)
-    sig_contrasts_all = np.append(
-        sig_contrasts_all, [-x for x in sig_contrasts_all if x != 0]
-    )
+    sig_contrasts_all = np.append(sig_contrasts_all, [-x for x in sig_contrasts_all if x != 0])
     sig_contrasts_all = np.sort(sig_contrasts_all)
 
     signed_contrast_buffer = np.array(tph.signed_contrast_buffer)
@@ -303,9 +341,7 @@ def plot_chron(chron_data, ax=None):
     y05 = chron_data[2]
     y08 = chron_data[3]
 
-    ax.plot(
-        x, y05, c="k", label="Median response time 50/50", marker="o", ls="-", alpha=0.5
-    )
+    ax.plot(x, y05, c="k", label="Median response time 50/50", marker="o", ls="-", alpha=0.5)
     ax.plot(x, y02, c="g", label="Median response time 20/80", marker="o", ls="-")
     ax.plot(x, y08, c="b", label="Median response time 80/20", marker="o", ls="-")
 
