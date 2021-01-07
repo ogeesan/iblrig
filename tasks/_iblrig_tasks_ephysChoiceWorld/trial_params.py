@@ -68,6 +68,7 @@ class TrialParamHandler(object):
         self.contrast_buffer = sph.CONTRASTS
         self.quiescent_period_buffer = sph.QUIESCENT_PERIOD
         self.stim_phase_buffer = sph.STIM_PHASE
+        self.stim_probability_left = sph.STIM
         self.len_blocks_buffer = sph.LEN_BLOCKS
 
         self.position = int(self.position_buffer[0])

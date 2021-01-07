@@ -8,15 +8,18 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import ibllib.io.raw_data_loaders as raw
+from ibllib.io.extractors.ephys_fpga import ProbaContrasts
 
 # XXX: Make find data func
 fpath = "/home/nico/Downloads/FlatIron/mainenlab/Subjects/ZM_3003/2020-07-30/001/raw_behavior_data/_iblrig_taskData.raw.jsonable"
 
 
-def load_data_from_file(fpath):
+def load_session(fpath):
     session_path = Path(fpath).parent.parent
     data = raw.load_data(session_path, time="raw")
-    return data
+    sett = raw.load_settings(session_path)
+    stim_vars = ProbaContrasts.get_pregenerated_events(data, settings)
+    return data, sett, stim_vars
 
 
 def make_fig(sub_name, sub_weight, sess_datetime):
@@ -55,25 +58,42 @@ def update_fig(f, axes, tph):
 
 def get_barplot_data(data):
     out = {}
-    out["trial_num"] = data[-1]['trial_num']
-    out["block_num"] = data[-1]['block_num']
-    out["block_trial_num"] = data[-1]['block_trial_num']
-    out["block_len"] = data[-1]['block_len']
-    out["ntrials_correct"] = data[-1]['ntrials_correct']
+    out["trial_num"] = data[-1]["trial_num"]
+    out["block_num"] = data[-1]["block_num"]
+    out["block_trial_num"] = data[-1]["block_trial_num"]
+    out["block_len"] = data[-1]["block_len"]
+    out["ntrials_correct"] = data[-1]["ntrials_correct"]
     out["ntrials_err"] = out["trial_num"] - out["ntrials_correct"]
-    out["water_delivered"] = np.round(data[-1]['water_delivered'], 3)
-    out["time_from_start"] = data[-1]['elapsed_time']
-    out["stim_pl"] = data[-1]['stim_probability_left']
+    out["water_delivered"] = np.round(data[-1]["water_delivered"], 3)
+    out["time_from_start"] = data[-1]["elapsed_time"]
+    out["stim_pl"] = data[-1]["stim_probability_left"]
     return out
 
 
 def get_psych_data(data):
-    sig_contrasts_all = np.array(data[-1]['contrast_set'])
+    sig_contrasts_all = np.array(data[-1]["contrast_set"])
     sig_contrasts_all = np.append(sig_contrasts_all, [-x for x in sig_contrasts_all if x != 0])
     sig_contrasts_all = np.sort(sig_contrasts_all)
 
-    signed_contrast_buffer = np.array([tr['signed_contrast'] for tr in data])
-    response_side_buffer = np.array(tph.response_side_buffer)
+    signed_contrast_buffer = np.array([tr["signed_contrast"] for tr in data])
+
+    correct = ~np.isnan([x["behavior_data"]["States timestamps"]["correct"][0][0] for x in data])
+    error = ~np.isnan([x["behavior_data"]["States timestamps"]["error"][0][0] for x in data])
+    no_go = ~np.isnan([x["behavior_data"]["States timestamps"]["no_go"][0][0] for x in data])
+
+    np.all(np.bitwise_or(correct, error, no_go))
+
+    position = np.array([x["position"] for x in data])
+    response_side_buffer = np.zeros(len(data)) * np.nan
+    response_side_buffer[
+        np.bitwise_or(np.bitwise_and(correct, position < 0), np.bitwise_and(error, position > 0))
+    ] = 1
+    response_side_buffer[
+        np.bitwise_or(np.bitwise_and(correct, position > 0), np.bitwise_and(error, position < 0))
+    ] = -1
+    response_side_buffer[no_go] = 0
+
+
     stim_probability_left_buffer = np.array(tph.stim_probability_left_buffer)
 
     def get_prop_ccw_resp(stim_prob_left):
