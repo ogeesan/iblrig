@@ -128,17 +128,10 @@ for i in range(sph.NTRIALS):  # Main loop
         state_timer=tph.quiescent_period,
         output_actions=[],
         state_change_conditions={
-            "Tup": "laser_on",
+            "Tup": "stim_on",
             tph.movement_left: "reset_rotary_encoder",
             tph.movement_right: "reset_rotary_encoder",
         },
-    )
-
-    sma.add_state(
-        state_name="laser_on",
-        state_timer=0,
-        output_actions=[tph.laser_out],
-        state_change_conditions={"Tup": "stim_on"},
     )
 
     sma.add_state(
@@ -155,14 +148,14 @@ for i in range(sph.NTRIALS):  # Main loop
     sma.add_state(
         state_name="interactive_delay",
         state_timer=tph.interactive_delay,
-        output_actions=[tph.laser_out],
+        output_actions=[],
         state_change_conditions={"Tup": "play_tone"},
     )
 
     sma.add_state(
         state_name="play_tone",
         state_timer=0.1,
-        output_actions=[tph.out_tone],
+        output_actions=[tph.out_tone, tph.laser_out],
         state_change_conditions={
             "Tup": "reset2_rotary_encoder",
             "BNC2High": "reset2_rotary_encoder",
@@ -196,7 +189,7 @@ for i in range(sph.NTRIALS):  # Main loop
 
     sma.add_state(
         state_name="freeze_error",
-        state_timer=0,
+        state_timer=0.1,
         output_actions=[("Serial1", bonsai_freeze_stim)],
         state_change_conditions={"Tup": "error"},
     )
@@ -210,7 +203,7 @@ for i in range(sph.NTRIALS):  # Main loop
 
     sma.add_state(
         state_name="freeze_reward",
-        state_timer=0,
+        state_timer=0.1,
         output_actions=[("Serial1", bonsai_freeze_stim)],
         state_change_conditions={"Tup": "reward"},
     )

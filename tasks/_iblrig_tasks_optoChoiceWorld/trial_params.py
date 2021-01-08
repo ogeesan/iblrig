@@ -42,18 +42,14 @@ def update_laser_block_params(tph):
     return tph
 
 
-def update_laser_on(tph):
-    if tph.block_trial_num != 1:
-        return tph.laser_on
+def update_laser_stimulation(tph):
+    if tph.laser_block_trial_num != 1:
+        return tph.laser_stimulation
 
-    if tph.block_num == 1 and tph.block_init_5050:
-        return False
-    elif tph.block_num == 1 and not tph.block_init_5050:
-        return np.random.choice([True, False])
-    elif tph.block_num == 2 and tph.block_init_5050:
-        return np.random.choice([True, False])
+    if tph.laser_block_num == 2 and tph.block_init_5050:
+        return bool(np.random.choice([True, False]))
     else:
-        return not tph.laser_on
+        return not tph.laser_stimulation 
 
 
 class TrialParamHandler(object):
@@ -117,23 +113,23 @@ class TrialParamHandler(object):
         self.block_probability_set = sph.BLOCK_PROBABILITY_SET
         self.block_init_5050 = sph.BLOCK_INIT_5050
         self.block_len = blocks.init_block_len(self)
-
+        
         # Laser
         self.laser_block_num = 0
         self.laser_block_trial_num = 0
         self.laser_block_len_factor = sph.LASER_BLOCK_LEN_FACTOR
         self.laser_block_len_min = sph.LASER_BLOCK_LEN_MIN
         self.laser_block_len_max = sph.LASER_BLOCK_LEN_MAX
-        self.laser_block_len = init_laser_block_len(self)
+        self.laser_block_len = init_laser_block_len(self)        
         if self.block_init_5050:
-            self.laser_on = False
+            self.laser_stimulation = False
         else:
-            self.laser_on = bool(np.random.choice([True, False]))
-        if self.laser_on:
+            self.laser_stimulation = bool(np.random.choice([True, False]))
+        if self.laser_stimulation:
             self.laser_out = self.out_laser_on
         else:
             self.laser_out = self.out_laser_off
-
+                    
         # Position
         self.stim_probability_left = blocks.init_probability_left(self)
         self.stim_probability_left_buffer = [self.stim_probability_left]
@@ -161,7 +157,7 @@ class TrialParamHandler(object):
         self.trial_correct_buffer = []
         self.ntrials_correct = 0
         self.water_delivered = 0
-
+        
 
     def check_stop_criterions(self):
         return misc.check_stop_criterions(
@@ -193,8 +189,11 @@ class TrialParamHandler(object):
 TRIAL NUM:            {self.trial_num}
 STIM POSITION:        {self.position}
 STIM CONTRAST:        {self.contrast}
-STIM PHASE:           {self.stim_phase}
-OPTO STIMULATION:     {self.laser_on}
+
+OPTO BLOCK NUMBER:    {self.laser_block_num}
+OPTO BLOCK LENGTH:    {self.laser_block_len}
+TRIALS IN BLOCK:      {self.laser_block_trial_num}
+OPTO STIMULATION:     {self.laser_stimulation}
 
 BLOCK NUMBER:         {self.block_num}
 BLOCK LENGTH:         {self.block_len}
@@ -208,9 +207,6 @@ NTRIALS CORRECT:      {self.ntrials_correct}
 NTRIALS ERROR:        {self.trial_num - self.ntrials_correct}
 WATER DELIVERED:      {np.round(self.water_delivered, 3)} µl
 TIME FROM START:      {self.elapsed_time}
-TEMPERATURE:          {self.as_data['Temperature_C']} ºC
-AIR PRESSURE:         {self.as_data['AirPressure_mb']} mb
-RELATIVE HUMIDITY:    {self.as_data['RelativeHumidity']} %
 ##########################################"""
         log.info(msg)
 
@@ -220,6 +216,7 @@ RELATIVE HUMIDITY:    {self.as_data['RelativeHumidity']} %
             self.trial_num += 1
             self.block_num += 1
             self.block_trial_num += 1
+            self.laser_block_trial_num += 1
             # Send next trial info to Bonsai
             bonsai.send_current_trial_info(self)
             return
@@ -238,8 +235,8 @@ RELATIVE HUMIDITY:    {self.as_data['RelativeHumidity']} %
         # Update laser block
         self = update_laser_block_params(self)
         # Update if laser is on
-        self.laser_on = update_laser_on(self)
-        if self.laser_on:
+        self.laser_stimulation = update_laser_stimulation(self)
+        if self.laser_stimulation:        
             self.laser_out = self.out_laser_on
         else:
             self.laser_out = self.out_laser_off
