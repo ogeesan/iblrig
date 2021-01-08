@@ -270,8 +270,8 @@ if __name__ == "__main__":
     dt = [x if int(x) >= 10 else "0" + x for x in dt]
     dt.insert(3, "-")
     _user_settings.PYBPOD_SESSION = "".join(dt)
-    _user_settings.PYBPOD_SETUP = "biasedChoiceWorld"
-    _user_settings.PYBPOD_PROTOCOL = "_iblrig_tasks_biasedChoiceWorld"
+    _user_settings.PYBPOD_SETUP = "opto_biasedChoiceWorld"
+    _user_settings.PYBPOD_PROTOCOL = "_iblrig_tasks_opto_biasedChoiceWorld"
     if platform == "linux":
         r = "/home/nico/Projects/IBL/github/iblrig"
         _task_settings.IBLRIG_FOLDER = r

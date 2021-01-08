@@ -49,7 +49,7 @@ def update_laser_stimulation(tph):
     if tph.laser_block_num == 2 and tph.block_init_5050:
         return bool(np.random.choice([True, False]))
     else:
-        return not tph.laser_stimulation 
+        return not tph.laser_stimulation
 
 
 class TrialParamHandler(object):
@@ -113,14 +113,14 @@ class TrialParamHandler(object):
         self.block_probability_set = sph.BLOCK_PROBABILITY_SET
         self.block_init_5050 = sph.BLOCK_INIT_5050
         self.block_len = blocks.init_block_len(self)
-        
+
         # Laser
         self.laser_block_num = 0
         self.laser_block_trial_num = 0
         self.laser_block_len_factor = sph.LASER_BLOCK_LEN_FACTOR
         self.laser_block_len_min = sph.LASER_BLOCK_LEN_MIN
         self.laser_block_len_max = sph.LASER_BLOCK_LEN_MAX
-        self.laser_block_len = init_laser_block_len(self)        
+        self.laser_block_len = init_laser_block_len(self)
         if self.block_init_5050:
             self.laser_stimulation = False
         else:
@@ -129,7 +129,7 @@ class TrialParamHandler(object):
             self.laser_out = self.out_laser_on
         else:
             self.laser_out = self.out_laser_off
-                    
+
         # Position
         self.stim_probability_left = blocks.init_probability_left(self)
         self.stim_probability_left_buffer = [self.stim_probability_left]
@@ -157,7 +157,6 @@ class TrialParamHandler(object):
         self.trial_correct_buffer = []
         self.ntrials_correct = 0
         self.water_delivered = 0
-        
 
     def check_stop_criterions(self):
         return misc.check_stop_criterions(
@@ -236,7 +235,7 @@ TIME FROM START:      {self.elapsed_time}
         self = update_laser_block_params(self)
         # Update if laser is on
         self.laser_stimulation = update_laser_stimulation(self)
-        if self.laser_stimulation:        
+        if self.laser_stimulation:
             self.laser_out = self.out_laser_on
         else:
             self.laser_out = self.out_laser_off
@@ -341,8 +340,8 @@ if __name__ == "__main__":
     dt = [x if int(x) >= 10 else "0" + x for x in dt]
     dt.insert(3, "-")
     _user_settings.PYBPOD_SESSION = "".join(dt)
-    _user_settings.PYBPOD_SETUP = "optoChoiceWorld"
-    _user_settings.PYBPOD_PROTOCOL = "_iblrig_tasks_optoChoiceWorld"
+    _user_settings.PYBPOD_SETUP = "opto_biasedChoiceWorld"
+    _user_settings.PYBPOD_PROTOCOL = "_iblrig_tasks_opto_biasedChoiceWorld"
     if platform == "linux":
         r = "/home/nico/Projects/IBL/github/iblrig"
         _task_settings.IBLRIG_FOLDER = r
