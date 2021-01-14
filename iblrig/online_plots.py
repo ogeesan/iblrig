@@ -11,9 +11,6 @@ import ibllib.io.raw_data_loaders as raw
 from ibllib.io.extractors.ephys_fpga import ProbaContrasts
 import alf.folders
 
-# XXX: Make find data func
-fpath = "/home/nico/Downloads/FlatIron/mainenlab/Subjects/ZM_3003/2020-07-30/001/raw_behavior_data/_iblrig_taskData.raw.jsonable"
-
 
 def load_raw_session(fpath):
     session_path = alf.folders.session_path(fpath)
@@ -26,7 +23,7 @@ def load_raw_session(fpath):
     return data, sett, stim_vars
 
 
-def make_fig(sub_name, sub_weight, sess_datetime):
+def make_fig(sett):
     plt.ion()
     f = plt.figure()  # figsize=(19.2, 10.8), dpi=100)
     ax_bars = plt.subplot2grid((2, 2), (0, 0), rowspan=1, colspan=1)
@@ -37,7 +34,9 @@ def make_fig(sub_name, sub_weight, sess_datetime):
     f.canvas.draw_idle()
     #     plt.show()
 
-    f.suptitle(f"{sub_name} - {sub_weight}gr - {sess_datetime}")  # noqa
+    f.suptitle(
+        f"{sett['PYBPOD_SUBJECTS'][0]} - {sett['SUBJECT_WEIGHT']}gr - {sett['SESSION_DATETIME']}"
+    )  # noqa
 
     axes = (ax_bars, ax_psych, ax_chron, ax_vars, ax_vars2)
     return (f, axes)
@@ -49,8 +48,8 @@ def update_fig(f, axes, data_file_path):
     data, sett, stim_vars = load_raw_session(data_file_path)
     bar_data = get_barplot_data(data)
     psych_data = get_psych_data(data, stim_vars)
-    chron_data = get_chron_data(tph)
-    vars_data = get_vars_data(tph)
+    chron_data = get_chron_data(data, sett, stim_vars)
+    vars_data = get_vars_data(data)
 
     plot_bars(bar_data, ax=ax_bars)
     plot_psych(psych_data, ax=ax_psych)
@@ -184,10 +183,10 @@ def get_vars_data(data):
 
     out = {}
     out["median_rt"] = np.median(response_time_buffer) * 1000
-    out["prop_correct"] = tph.ntrials_correct / tph.trial_num
-    out["Temperature_C"] = tph.as_data["Temperature_C"]
-    out["AirPressure_mb"] = tph.as_data["AirPressure_mb"]
-    out["RelativeHumidity"] = tph.as_data["RelativeHumidity"]
+    out["prop_correct"] = data[-1]["ntrials_correct"] / data[-1]["trial_num"]
+    out["Temperature_C"] = data[-1]["as_data"]["Temperature_C"]
+    out["AirPressure_mb"] = data[-1]["as_data"]["AirPressure_mb"]
+    out["RelativeHumidity"] = data[-1]["as_data"]["RelativeHumidity"]
     return out
 
 
@@ -391,4 +390,9 @@ def plot_vars(vars_data, ax=None, ax2=None):
 
 
 if __name__ == "__main__":
-    pass
+    # XXX: Make find data func
+    fpath = "/home/nico/Downloads/FlatIron/mainenlab/Subjects/ZM_3003/2020-07-30/001/raw_behavior_data/_iblrig_taskData.raw.jsonable"
+    data, sett, stim_vars = load_raw_session(fpath)
+    f, axes = make_fig(sett)
+
+    update_fig(f, axes, fpath)
