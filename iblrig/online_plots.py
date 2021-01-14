@@ -79,7 +79,7 @@ def _get_response_side_buffer(data):
     error = ~np.isnan([x["behavior_data"]["States timestamps"]["error"][0][0] for x in data])
     no_go = ~np.isnan([x["behavior_data"]["States timestamps"]["no_go"][0][0] for x in data])
 
-    np.all(np.bitwise_or(correct, error, no_go))
+    np.all(np.bitwise_or(np.bitwise_or(correct, error), no_go))
 
     position = np.array([x["position"] for x in data])
     response_side_buffer = np.zeros(len(data)) * np.nan
