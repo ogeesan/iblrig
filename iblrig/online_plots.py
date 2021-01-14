@@ -15,7 +15,7 @@ import alf.folders
 fpath = "/home/nico/Downloads/FlatIron/mainenlab/Subjects/ZM_3003/2020-07-30/001/raw_behavior_data/_iblrig_taskData.raw.jsonable"
 
 
-def load_session(fpath):
+def load_raw_session(fpath):
     session_path = alf.folders.session_path(fpath)
     if session_path is None:
         print(f"Session path is None, can't load anything...")
@@ -46,7 +46,7 @@ def make_fig(sub_name, sub_weight, sess_datetime):
 def update_fig(f, axes, data_file_path):
     ax_bars, ax_psych, ax_chron, ax_vars, ax_vars2 = axes
 
-    data, sett, stim_vars = load_session(data_file_path)
+    data, sett, stim_vars = load_raw_session(data_file_path)
     bar_data = get_barplot_data(data)
     psych_data = get_psych_data(data, stim_vars)
     chron_data = get_chron_data(tph)
@@ -104,7 +104,7 @@ def get_psych_data(data, stim_vars):
 
     response_side_buffer = _get_response_side_buffer(data)
 
-    stim_probability_left_buffer = stim_vars['probabilityLeft']
+    stim_probability_left_buffer = stim_vars["probabilityLeft"]
 
     def get_prop_ccw_resp(stim_prob_left):
         ntrials_ccw = np.array(
@@ -138,19 +138,27 @@ def get_psych_data(data, stim_vars):
     return sig_contrasts_all, prop_resp_ccw02, prop_resp_ccw05, prop_resp_ccw08
 
 
-def get_chron_data(tph):
-    sig_contrasts_all = tph.contrast_set.copy()
+def get_chron_data(data, sett, stim_vars):
+    sig_contrasts_all = sett["CONTRAST_SET"]
     sig_contrasts_all.extend([-x for x in sig_contrasts_all])
     sig_contrasts_all = np.sort(sig_contrasts_all)
 
-    signed_contrast_buffer = np.array(tph.signed_contrast_buffer)
-    resopnse_time_buffer = np.array(tph.response_time_buffer)
-    stim_probability_left_buffer = np.array(tph.stim_probability_left_buffer)
+    signed_contrast_buffer = np.array([tr["signed_contrast"] for tr in data])
+
+    response_time_buffer = np.array(
+        [
+            x["behavior_data"]["States timestamps"]["closed_loop"][0][1]
+            - x["behavior_data"]["States timestamps"]["stim_on"][0][0]
+            for x in data
+        ]
+    )
+
+    stim_probability_left_buffer = stim_vars["probabilityLeft"]
 
     def get_rts(stim_prob_left):
         rts = [
             np.median(
-                resopnse_time_buffer[
+                response_time_buffer[
                     (signed_contrast_buffer == x)
                     & (stim_probability_left_buffer == stim_prob_left)
                 ]
@@ -165,9 +173,17 @@ def get_chron_data(tph):
     return sig_contrasts_all, rts02, rts05, rts08
 
 
-def get_vars_data(tph):
+def get_vars_data(data):
+    response_time_buffer = np.array(
+        [
+            x["behavior_data"]["States timestamps"]["closed_loop"][0][1]
+            - x["behavior_data"]["States timestamps"]["stim_on"][0][0]
+            for x in data
+        ]
+    )
+
     out = {}
-    out["median_rt"] = np.median(tph.response_time_buffer) * 1000
+    out["median_rt"] = np.median(response_time_buffer) * 1000
     out["prop_correct"] = tph.ntrials_correct / tph.trial_num
     out["Temperature_C"] = tph.as_data["Temperature_C"]
     out["AirPressure_mb"] = tph.as_data["AirPressure_mb"]
