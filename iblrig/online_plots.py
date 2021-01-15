@@ -3,19 +3,21 @@
 # @Author: Niccolò Bonacchi
 # @Date:   2018-02-20 14:46:10
 # matplotlib.use('Qt5Agg')
+import argparse
+import time
 from pathlib import Path
 
+import alf.folders
+import ibllib.io.raw_data_loaders as raw
 import matplotlib.pyplot as plt
 import numpy as np
-import ibllib.io.raw_data_loaders as raw
 from ibllib.io.extractors.ephys_fpga import ProbaContrasts
-import alf.folders
 
 
 def load_raw_session(fpath):
     session_path = alf.folders.session_path(fpath)
     if session_path is None:
-        print(f"Session path is None, can't load anything...")
+        print("Session path is None, can't load anything...")
         return
     data = raw.load_data(session_path, time="raw")
     sett = raw.load_settings(session_path)
@@ -25,20 +27,20 @@ def load_raw_session(fpath):
 
 def make_fig(sett):
     plt.ion()
-    f = plt.figure()  # figsize=(19.2, 10.8), dpi=100)
+    f = plt.figure(figsize=(20,10))  # figsize=(19.2, 10.8), dpi=100)
     ax_bars = plt.subplot2grid((2, 2), (0, 0), rowspan=1, colspan=1)
     ax_psych = plt.subplot2grid((2, 2), (0, 1), rowspan=1, colspan=1)
     ax_chron = plt.subplot2grid((2, 2), (1, 0), rowspan=1, colspan=1)
     ax_vars = plt.subplot2grid((2, 2), (1, 1), rowspan=1, colspan=1)
     ax_vars2 = ax_vars.twinx()
-    f.canvas.draw_idle()
     #     plt.show()
 
     f.suptitle(
         f"{sett['PYBPOD_SUBJECTS'][0]} - {sett['SUBJECT_WEIGHT']}gr - {sett['SESSION_DATETIME']}"
     )  # noqa
-
+    # f.tight_layout()
     axes = (ax_bars, ax_psych, ax_chron, ax_vars, ax_vars2)
+    f.canvas.flush_events()
     return (f, axes)
 
 
@@ -56,8 +58,19 @@ def update_fig(f, axes, data_file_path):
     plot_chron(chron_data, ax=ax_chron)
     plot_vars(vars_data, ax=ax_vars, ax2=ax_vars2)
 
+    f.canvas.flush_events()
+
+    # mgr = mgr = plt.get_current_fig_manager()
+    # pos = mgr.window.geometry().getRect()
+    # size = f.get_size_inches()
+
+    # f.set_visible(False)
+    # f.set_size_inches(18,10)
+    # f.set_visible(True)
     fname = Path(data_file_path).parent / "online_plot.png"
-    f.savefig(fname)
+    f.savefig(fname, dpi=100)
+    # mgr.window.setGeometry(*pos)
+    # f.set_size_inches(size)
 
 
 def get_barplot_data(data):
@@ -390,9 +403,23 @@ def plot_vars(vars_data, ax=None, ax2=None):
 
 
 if __name__ == "__main__":
-    # XXX: Make find data func
-    fpath = "/home/nico/Downloads/FlatIron/mainenlab/Subjects/ZM_3003/2020-07-30/001/raw_behavior_data/_iblrig_taskData.raw.jsonable"
-    data, sett, stim_vars = load_raw_session(fpath)
+    parser = argparse.ArgumentParser(description="Plot ongoing session")
+    parser.add_argument("folder", help="Session folder")
+    args = parser.parse_args()
+    args.folder
+
+    data, sett, stim_vars = load_raw_session(args.folder)
     f, axes = make_fig(sett)
 
-    update_fig(f, axes, fpath)
+    init = round(time.time(), 1)
+    while True:
+        f.canvas.flush_events()
+        if round(round((round(time.time(), 1) - init), 1) % 1.5, 1) == 0:
+            update_fig(f, axes, args.folder)
+
+#ephys
+    fpath = "/home/nico/Downloads/FlatIron/mainenlab/Subjects/ZM_3003/2020-07-30/001/raw_behavior_data/_iblrig_taskData.raw.jsonable"
+    #biased
+
+    #training
+    # Get data file properties, if changed update figure
