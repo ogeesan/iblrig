@@ -214,6 +214,7 @@ TIME FROM START:      {self.elapsed_time}
         if self.trial_num == 0:
             self.trial_num += 1
             self.block_num += 1
+            self.laser_block_num += 1
             self.block_trial_num += 1
             self.laser_block_trial_num += 1
             # Send next trial info to Bonsai
