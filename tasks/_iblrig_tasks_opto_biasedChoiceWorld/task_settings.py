@@ -34,20 +34,22 @@ STIM_GAIN = 4.0  # (azimuth_degree/mm) Gain of the RE to stimulus movement
 SYNC_SQUARE_X = 1.33
 SYNC_SQUARE_Y = -1.03
 # BLOCKS
-BLOCK_INIT_5050 = True
+BLOCK_INIT_5050 = False
 BLOCK_PROBABILITY_SET = [0.2, 0.8]
 BLOCK_LEN_FACTOR = 60
 BLOCK_LEN_MIN = 20
 BLOCK_LEN_MAX = 100
-# LASER BLOCKS
+# LASER 
 LASER_BLOCK_LEN_FACTOR = 60
 LASER_BLOCK_LEN_MIN = 20
 LASER_BLOCK_LEN_MAX = 100
+LASER_PROB_0 = 0.75  # Probability of laser stimulation during 0% contrast in laser blocks (inverse for non-laser blocks)
 # POSITIONS
 STIM_POSITIONS = [-35, 35]  # All possible positions for this session (deg)
 # CONTRASTS
 CONTRAST_SET = [1.0, 0.25, 0.125, 0.0625, 0.0]  # Full contrast set
-CONTRAST_SET_PROBABILITY_TYPE = "uniform"  # 'biased' or 'uniform'. Will half the probability of drawing a 0.  # noqa
+CONTRAST_SET_PROBABILITY_TYPE = "biased"  # 'biased' or 'uniform', when set to biased P(0% contrast) is * CONTRAST_PROB_0
+CONTRAST_PROB_0 = 1.5
 # SOUNDS
 SOFT_SOUND = "xonar"  # Use software sound 'xonar', 'sysdefault' or None for BpodSoundCard  # noqa
 SOUND_BOARD_BPOD_PORT = "Serial3"  # (on Bpod) - Ignored if using SOFT_SOUND

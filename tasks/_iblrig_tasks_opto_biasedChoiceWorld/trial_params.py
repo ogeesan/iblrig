@@ -42,14 +42,26 @@ def update_laser_block_params(tph):
     return tph
 
 
-def update_laser_stimulation(tph):
-    if tph.laser_block_trial_num != 1:
-        return tph.laser_stimulation
+def get_laser_probability(tph):
+    if tph.contrast != 0:
+        return int(tph.laser_block)
+    elif tph.stim_probability_left == 0.5:
+        return 0
+    elif tph.laser_block:
+        return tph.laser_prob_0
+    elif not tph.laser_block:
+        return 1 - tph.laser_prob_0
 
-    if tph.laser_block_num == 2 and tph.block_init_5050:
-        return bool(np.random.choice([True, False]))
-    else:
-        return not tph.laser_stimulation
+
+def update_laser_stimulation(tph):    
+    if (tph.laser_block_trial_num == 1):
+        if (tph.laser_block_num == 2) and tph.block_init_5050:
+            tph.laser_block = bool(np.random.choice([1, 0]))
+        else:
+            tph.laser_block = not tph.laser_block
+
+    tph.laser_probability = get_laser_probability(tph)
+    return bool(np.random.choice([1, 0], p=[tph.laser_probability, 1-tph.laser_probability]))
 
 
 class TrialParamHandler(object):
@@ -72,6 +84,7 @@ class TrialParamHandler(object):
         self.position_set = sph.STIM_POSITIONS
         self.contrast_set = sph.CONTRAST_SET
         self.contrast_set_probability_type = sph.CONTRAST_SET_PROBABILITY_TYPE
+        self.contrast_prob_0 = sph.CONTRAST_PROB_0
         self.repeat_on_error = sph.REPEAT_ON_ERROR
         self.threshold_events_dict = sph.ROTARY_ENCODER.THRESHOLD_EVENTS
         self.quiescent_period_base = sph.QUIESCENT_PERIOD
@@ -104,7 +117,6 @@ class TrialParamHandler(object):
         # Initialize parameters that may change every trial
         self.trial_num = 0
         self.stim_phase = 0.0
-
         self.block_num = 0
         self.block_trial_num = 0
         self.block_len_factor = sph.BLOCK_LEN_FACTOR
@@ -113,23 +125,6 @@ class TrialParamHandler(object):
         self.block_probability_set = sph.BLOCK_PROBABILITY_SET
         self.block_init_5050 = sph.BLOCK_INIT_5050
         self.block_len = blocks.init_block_len(self)
-
-        # Laser
-        self.laser_block_num = 0
-        self.laser_block_trial_num = 0
-        self.laser_block_len_factor = sph.LASER_BLOCK_LEN_FACTOR
-        self.laser_block_len_min = sph.LASER_BLOCK_LEN_MIN
-        self.laser_block_len_max = sph.LASER_BLOCK_LEN_MAX
-        self.laser_block_len = init_laser_block_len(self)
-        if self.block_init_5050:
-            self.laser_stimulation = False
-        else:
-            self.laser_stimulation = bool(np.random.choice([True, False]))
-        if self.laser_stimulation:
-            self.laser_out = self.out_laser_on
-        else:
-            self.laser_out = self.out_laser_off
-
         # Position
         self.stim_probability_left = blocks.init_probability_left(self)
         self.stim_probability_left_buffer = [self.stim_probability_left]
@@ -139,9 +134,30 @@ class TrialParamHandler(object):
         self.position_buffer = [self.position]
         # Contrast
         self.contrast = misc.draw_contrast(self.contrast_set)
+        while self.contrast == 0:  # don't start the session with a 0% contrast trial
+            self.contrast = misc.draw_contrast(self.contrast_set)
         self.contrast_buffer = [self.contrast]
         self.signed_contrast = self.contrast * np.sign(self.position)
         self.signed_contrast_buffer = [self.signed_contrast]
+        # Laser
+        self.laser_block_num = 0
+        self.laser_block_trial_num = 0
+        self.laser_block_len_factor = sph.LASER_BLOCK_LEN_FACTOR
+        self.laser_block_len_min = sph.LASER_BLOCK_LEN_MIN
+        self.laser_block_len_max = sph.LASER_BLOCK_LEN_MAX
+        self.laser_prob_0 = sph.LASER_PROB_0
+        self.laser_block_len = init_laser_block_len(self)
+        if self.block_init_5050:
+            self.laser_stimulation = False
+        else:
+            self.laser_stimulation = bool(np.random.choice([True, False]))
+        if self.laser_stimulation:
+            self.laser_out = self.out_laser_on
+            self.laser_block = True
+        else:
+            self.laser_out = self.out_laser_off
+            self.laser_block = False
+        self.laser_probability = int(self.laser_stimulation)
         # RE event names
         self.event_error = self.threshold_events_dict[self.position]
         self.event_reward = self.threshold_events_dict[-self.position]
@@ -193,6 +209,7 @@ OPTO BLOCK NUMBER:    {self.laser_block_num}
 OPTO BLOCK LENGTH:    {self.laser_block_len}
 TRIALS IN BLOCK:      {self.laser_block_trial_num}
 OPTO STIMULATION:     {self.laser_stimulation}
+OPTO PROBABILITY:     {self.laser_probability}
 
 BLOCK NUMBER:         {self.block_num}
 BLOCK LENGTH:         {self.block_len}
@@ -232,14 +249,6 @@ TIME FROM START:      {self.elapsed_time}
         # Update stim probability left + buffer
         self.stim_probability_left = blocks.update_probability_left(self)
         self.stim_probability_left_buffer.append(self.stim_probability_left)
-        # Update laser block
-        self = update_laser_block_params(self)
-        # Update if laser is on
-        self.laser_stimulation = update_laser_stimulation(self)
-        if self.laser_stimulation:
-            self.laser_out = self.out_laser_on
-        else:
-            self.laser_out = self.out_laser_off
         # Update position + buffer
         self.position = blocks.draw_position(
             self.position_set, self.stim_probability_left
@@ -247,12 +256,23 @@ TIME FROM START:      {self.elapsed_time}
         self.position_buffer.append(self.position)
         # Update contrast + buffer
         self.contrast = misc.draw_contrast(
-            self.contrast_set, prob_type=self.contrast_set_probability_type
+            self.contrast_set, prob_type=self.contrast_set_probability_type, idx_prob=self.contrast_prob_0
         )
         self.contrast_buffer.append(self.contrast)
         # Update signed_contrast + buffer (AFTER position update)
         self.signed_contrast = self.contrast * np.sign(self.position)
         self.signed_contrast_buffer.append(self.signed_contrast)
+        # Update laser block
+        self = update_laser_block_params(self)
+        # Update laser probability
+        self.laser_probability = get_laser_probability(self)
+        # Update if laser is on
+        self.laser_stimulation = update_laser_stimulation(self)
+        if self.laser_stimulation:
+            self.laser_out = self.out_laser_on
+        else:
+            self.laser_out = self.out_laser_off
+       
         # Update state machine events
         self.event_error = self.threshold_events_dict[self.position]
         self.event_reward = self.threshold_events_dict[-self.position]
