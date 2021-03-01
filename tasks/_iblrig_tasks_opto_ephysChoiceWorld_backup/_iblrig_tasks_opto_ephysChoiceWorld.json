@@ -1,10 +1,10 @@
 {
-    "__CREATED-ON__": "2021-01-11 16:22:20.310259",
+    "__CREATED-ON__": "2021-01-11 16:22:20.311256",
     "__DEF-TEXT__": "This file contains information about a PyBpod protocol.",
     "__DEF-URL__": "http://pybpod.readthedocs.org",
     "__SOFTWARE__": "PyBpod GUI API v1.8.2",
-    "__UPDATED-ON__": "2021-01-11 16:22:20.310259",
-    "__UUID4__": "5eef29a1-4faf-4db0-a964-2f1f38fb3b7d",
+    "__UPDATED-ON__": "2021-01-18 10:11:07.128139",
+    "__UUID4__": "acd867e0-af25-431a-8ac8-bc56f5a53229",
     "commands": [
         {
             "cmd": "python C:\\iblrig\\scripts\\bonsai_stop.py 7110",
@@ -28,6 +28,11 @@
         },
         {
             "cmd": "python C:\\iblrig\\scripts\\create_session.py --poop=False",
+            "type": "create_execcmd",
+            "when": 1
+        },
+        {
+            "cmd": "python C:\\iblrig\\scripts\\bonsai_stop.py 7112",
             "type": "create_execcmd",
             "when": 1
         }

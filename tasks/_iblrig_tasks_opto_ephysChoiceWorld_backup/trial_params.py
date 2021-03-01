@@ -5,8 +5,6 @@
 import datetime
 import json
 import logging
-import math
-import random
 import time
 
 import numpy as np
@@ -22,59 +20,25 @@ from iblrig.iotasks import ComplexEncoder
 log = logging.getLogger("iblrig")
 
 
-def init_laser_block_len(tph):
-    if tph.block_init_5050:
-        return 90
-    else:
-        laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
-                                        min_=tph.laser_block_len_min,
-                                        max_=tph.laser_block_len_max))
-        while (tph.block_len - tph.laser_transition_min
-                <= laser_block_len
-                <= tph.block_len + tph.laser_transition_min):
-            laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
-                                            min_=tph.laser_block_len_min,
-                                            max_=tph.laser_block_len_max))
-    return laser_block_len       
-
-
 def update_laser_block_params(tph):
     tph.laser_block_trial_num += 1
     if tph.laser_block_trial_num > tph.laser_block_len:
         tph.laser_block_num += 1
         tph.laser_block_trial_num = 1
-        laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
-                                        min_=tph.laser_block_len_min,
-                                        max_=tph.laser_block_len_max))
-        while ((tph.block_len - tph.block_trial_num) - tph.laser_transition_min
-                <= laser_block_len
-                <= (tph.block_len - tph.block_trial_num) + tph.laser_transition_min):
-            laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
+        tph.laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
                                             min_=tph.laser_block_len_min,
                                             max_=tph.laser_block_len_max))
     return tph
 
 
-def get_laser_probability(tph):
-    if tph.contrast != 0:
-        return int(tph.laser_block)
-    elif tph.stim_probability_left == 0.5:
-        return 0
-    elif tph.laser_block:
-        return tph.laser_prob_0
-    elif not tph.laser_block:
-        return 1 - tph.laser_prob_0
+def update_laser_stimulation(tph):
+    if tph.laser_block_trial_num != 1:
+        return tph.laser_stimulation
 
-
-def update_laser_stimulation(tph):    
-    if (tph.laser_block_trial_num == 1):
-        if (tph.laser_block_num == 2) and tph.block_init_5050:
-            tph.laser_block = bool(np.random.choice([1, 0]))
-        else:
-            tph.laser_block = not tph.laser_block
-
-    tph.laser_probability = get_laser_probability(tph)
-    return bool(np.random.choice([1, 0], p=[tph.laser_probability, 1-tph.laser_probability]))
+    if tph.laser_block_num == 2:
+        return bool(np.random.choice([True, False]))
+    else:
+        return not tph.laser_stimulation
 
 
 class TrialParamHandler(object):
@@ -87,21 +51,15 @@ class TrialParamHandler(object):
 
     def __init__(self, sph):
         # Constants from settings
-        self.session_start_delay_sec = sph.SESSION_START_DELAY_SEC
-        self.init_datetime = parser.parse(sph.PYBPOD_SESSION) + datetime.timedelta(
-            0, self.session_start_delay_sec
-        )
+        self.init_datetime = parser.parse(sph.PYBPOD_SESSION)
         self.task_protocol = sph.PYBPOD_PROTOCOL
         self.data_file_path = sph.DATA_FILE_PATH
         self.data_file = open(self.data_file_path, "a")
         self.position_set = sph.STIM_POSITIONS
         self.contrast_set = sph.CONTRAST_SET
         self.contrast_set_probability_type = sph.CONTRAST_SET_PROBABILITY_TYPE
-        self.contrast_prob_0 = sph.CONTRAST_PROB_0
         self.repeat_on_error = sph.REPEAT_ON_ERROR
         self.threshold_events_dict = sph.ROTARY_ENCODER.THRESHOLD_EVENTS
-        self.quiescent_period_base = sph.QUIESCENT_PERIOD
-        self.quiescent_period = self.quiescent_period_base + misc.texp()
         self.response_window = sph.RESPONSE_WINDOW
         self.interactive_delay = sph.INTERACTIVE_DELAY
         self.iti_error = sph.ITI_ERROR
@@ -111,12 +69,12 @@ class TrialParamHandler(object):
         self.stim_angle = sph.STIM_ANGLE
         self.stim_gain = sph.STIM_GAIN
         self.stim_sigma = sph.STIM_SIGMA
+        self.out_laser_on = sph.OUT_LASER_ON
+        self.out_laser_off = sph.OUT_LASER_OFF
         self.out_tone = sph.OUT_TONE
         self.out_noise = sph.OUT_NOISE
         self.out_stop_sound = sph.OUT_STOP_SOUND
         self.poop_count = sph.POOP_COUNT
-        self.out_laser_on = sph.OUT_LASER_ON
-        self.out_laser_off = sph.OUT_LASER_OFF
         self.save_ambient_data = sph.RECORD_AMBIENT_SENSOR_DATA
         self.as_data = {
             "Temperature_C": -1,
@@ -129,27 +87,23 @@ class TrialParamHandler(object):
         self.iti_correct = self.iti_correct_target - self.reward_valve_time
         # Initialize parameters that may change every trial
         self.trial_num = 0
-        self.stim_phase = 0.0
+        self.position_buffer = sph.POSITIONS
+        self.contrast_buffer = sph.CONTRASTS
+        self.quiescent_period_buffer = sph.QUIESCENT_PERIOD
+        self.stim_phase_buffer = sph.STIM_PHASE
+        self.len_blocks_buffer = sph.LEN_BLOCKS
+
+        self.position = int(self.position_buffer[0])
+        self.contrast = self.contrast_buffer[0]
+        self.quiescent_period = self.quiescent_period_buffer[0]
+        self.stim_phase = self.stim_phase_buffer[0]
+        self.block_len = self.len_blocks_buffer[0]
+
         self.block_num = 0
         self.block_trial_num = 0
-        self.block_len_factor = sph.BLOCK_LEN_FACTOR
-        self.block_len_min = sph.BLOCK_LEN_MIN
-        self.block_len_max = sph.BLOCK_LEN_MAX
-        self.block_probability_set = sph.BLOCK_PROBABILITY_SET
-        self.block_init_5050 = sph.BLOCK_INIT_5050
-        self.block_len = blocks.init_block_len(self)
-        # Position
-        self.stim_probability_left = blocks.init_probability_left(self)
+
+        self.stim_probability_left = 0.5
         self.stim_probability_left_buffer = [self.stim_probability_left]
-        self.position = blocks.draw_position(
-            self.position_set, self.stim_probability_left
-        )
-        self.position_buffer = [self.position]
-        # Contrast
-        self.contrast = misc.draw_contrast(self.contrast_set)
-        while self.contrast == 0:  # don't start the session with a 0% contrast trial
-            self.contrast = misc.draw_contrast(self.contrast_set)
-        self.contrast_buffer = [self.contrast]
         self.signed_contrast = self.contrast * np.sign(self.position)
         self.signed_contrast_buffer = [self.signed_contrast]
         # Laser
@@ -158,20 +112,10 @@ class TrialParamHandler(object):
         self.laser_block_len_factor = sph.LASER_BLOCK_LEN_FACTOR
         self.laser_block_len_min = sph.LASER_BLOCK_LEN_MIN
         self.laser_block_len_max = sph.LASER_BLOCK_LEN_MAX
-        self.laser_prob_0 = sph.LASER_PROB_0
-        self.laser_transition_min = sph.LASER_TRANSITION_MIN
-        self.laser_block_len = init_laser_block_len(self)
-        if self.block_init_5050:
-            self.laser_stimulation = False
-        else:
-            self.laser_stimulation = bool(np.random.choice([True, False]))
-        if self.laser_stimulation:
-            self.laser_out = self.out_laser_on
-            self.laser_block = True
-        else:
-            self.laser_out = self.out_laser_off
-            self.laser_block = False
-        self.laser_probability = int(self.laser_stimulation)
+        self.laser_block_len = 90
+        self.laser_stimulation = False
+        self.laser_out = self.out_laser_off
+
         # RE event names
         self.event_error = self.threshold_events_dict[self.position]
         self.event_reward = self.threshold_events_dict[-self.position]
@@ -223,7 +167,6 @@ OPTO BLOCK NUMBER:    {self.laser_block_num}
 OPTO BLOCK LENGTH:    {self.laser_block_len}
 TRIALS IN BLOCK:      {self.laser_block_trial_num}
 OPTO STIMULATION:     {self.laser_stimulation}
-OPTO PROBABILITY:     {self.laser_probability}
 
 BLOCK NUMBER:         {self.block_num}
 BLOCK LENGTH:         {self.block_len}
@@ -237,6 +180,9 @@ NTRIALS CORRECT:      {self.ntrials_correct}
 NTRIALS ERROR:        {self.trial_num - self.ntrials_correct}
 WATER DELIVERED:      {np.round(self.water_delivered, 3)} µl
 TIME FROM START:      {self.elapsed_time}
+TEMPERATURE:          {self.as_data['Temperature_C']} ºC
+AIR PRESSURE:         {self.as_data['AirPressure_mb']} mb
+RELATIVE HUMIDITY:    {self.as_data['RelativeHumidity']} %
 ##########################################"""
         log.info(msg)
 
@@ -245,8 +191,8 @@ TIME FROM START:      {self.elapsed_time}
         if self.trial_num == 0:
             self.trial_num += 1
             self.block_num += 1
-            self.laser_block_num += 1
             self.block_trial_num += 1
+            self.laser_block_num += 1
             self.laser_block_trial_num += 1
             # Send next trial info to Bonsai
             bonsai.send_current_trial_info(self)
@@ -255,38 +201,33 @@ TIME FROM START:      {self.elapsed_time}
         # Increment trial number
         self.trial_num += 1
         # Update quiescent period
-        self.quiescent_period = self.quiescent_period_base + misc.texp()
+        self.quiescent_period = self.quiescent_period_buffer[self.trial_num - 1]
         # Update stimulus phase
-        self.stim_phase = random.uniform(0, 2 * math.pi)
+        self.stim_phase = self.stim_phase_buffer[self.trial_num - 1]
         # Update block
-        self = blocks.update_block_params(self)
+        self.block_trial_num += 1
+        if self.block_trial_num > self.block_len:
+            self.block_num += 1
+            self.block_trial_num = 1
+            self.block_len = self.len_blocks_buffer[self.block_num - 1]
         # Update stim probability left + buffer
-        self.stim_probability_left = blocks.update_probability_left(self)
+        self.stim_probability_left = blocks.calc_probability_left(self)
         self.stim_probability_left_buffer.append(self.stim_probability_left)
-        # Update position + buffer
-        self.position = blocks.draw_position(
-            self.position_set, self.stim_probability_left
-        )
-        self.position_buffer.append(self.position)
-        # Update contrast + buffer
-        self.contrast = misc.draw_contrast(
-            self.contrast_set, prob_type=self.contrast_set_probability_type, idx_prob=self.contrast_prob_0
-        )
-        self.contrast_buffer.append(self.contrast)
-        # Update signed_contrast + buffer (AFTER position update)
-        self.signed_contrast = self.contrast * np.sign(self.position)
-        self.signed_contrast_buffer.append(self.signed_contrast)
         # Update laser block
         self = update_laser_block_params(self)
-        # Update laser probability
-        self.laser_probability = get_laser_probability(self)
         # Update if laser is on
         self.laser_stimulation = update_laser_stimulation(self)
         if self.laser_stimulation:
             self.laser_out = self.out_laser_on
         else:
             self.laser_out = self.out_laser_off
-       
+        # Update position + buffer
+        self.position = int(self.position_buffer[self.trial_num - 1])
+        # Update contrast + buffer
+        self.contrast = self.contrast_buffer[self.trial_num - 1]
+        # Update signed_contrast + buffer (AFTER position update)
+        self.signed_contrast = self.contrast * np.sign(self.position)
+        self.signed_contrast_buffer.append(self.signed_contrast)
         # Update state machine events
         self.event_error = self.threshold_events_dict[self.position]
         self.event_reward = self.threshold_events_dict[-self.position]
@@ -343,6 +284,9 @@ TIME FROM START:      {self.elapsed_time}
         params["response_time_buffer"] = ""
         params["response_side_buffer"] = ""
         params["trial_correct_buffer"] = ""
+        params["quiescent_period_buffer"] = ""
+        params["stim_phase_buffer"] = ""
+        params["len_blocks_buffer"] = ""
         # Dump and save
         out = json.dumps(params, cls=ComplexEncoder)
         self.data_file.write(out)
@@ -375,8 +319,8 @@ if __name__ == "__main__":
     dt = [x if int(x) >= 10 else "0" + x for x in dt]
     dt.insert(3, "-")
     _user_settings.PYBPOD_SESSION = "".join(dt)
-    _user_settings.PYBPOD_SETUP = "opto_biasedChoiceWorld"
-    _user_settings.PYBPOD_PROTOCOL = "_iblrig_tasks_opto_biasedChoiceWorld"
+    _user_settings.PYBPOD_SETUP = "opto_ephysChoiceWorld"
+    _user_settings.PYBPOD_PROTOCOL = "_iblrig_tasks_opto_ephysChoiceWorld"
     if platform == "linux":
         r = "/home/nico/Projects/IBL/github/iblrig"
         _task_settings.IBLRIG_FOLDER = r

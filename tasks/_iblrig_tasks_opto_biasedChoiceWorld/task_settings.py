@@ -44,6 +44,7 @@ LASER_BLOCK_LEN_FACTOR = 60
 LASER_BLOCK_LEN_MIN = 20
 LASER_BLOCK_LEN_MAX = 100
 LASER_PROB_0 = 0.75  # Probability of laser stimulation during 0% contrast in laser blocks (inverse for non-laser blocks)
+LASER_TRANSITION_MIN = 10  # Number of trials before and after block switch in which no laser block switch may occur
 # POSITIONS
 STIM_POSITIONS = [-35, 35]  # All possible positions for this session (deg)
 # CONTRASTS
