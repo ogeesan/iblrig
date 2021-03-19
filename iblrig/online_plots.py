@@ -406,7 +406,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot ongoing session")
     parser.add_argument("folder", help="Session folder")
     args = parser.parse_args()
-    args.folder
+    print(args.folder)
 
     data, sett, stim_vars = load_raw_session(args.folder)
     f, axes = make_fig(sett)
@@ -417,8 +417,12 @@ if __name__ == "__main__":
         if round(round((round(time.time(), 1) - init), 1) % 1.5, 1) == 0:
             update_fig(f, axes, args.folder)
 
-#ephys
+    #ephys
     fpath = "/home/nico/Downloads/FlatIron/mainenlab/Subjects/ZM_3003/2020-07-30/001/raw_behavior_data/_iblrig_taskData.raw.jsonable"
+    fpath = r"C:\iblrig_data\Subjects\ZM_3003\2020-07-27\001"
+    pl = subprocess.Popen(["python", r".\iblrig\online_plots.py", r"C:\iblrig_data\Subjects\ZM_3003\2020-07-27\001"])
+    pl.kill()
+    pl.terminate()
     #biased
 
     #training
