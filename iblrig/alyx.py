@@ -19,6 +19,16 @@ import iblrig.params as rig_params
 log = logging.getLogger("iblrig")
 
 
+def check_alyx_ok():
+    try:
+        ONE()
+        return True
+    except Exception as e:
+        print(e)
+        log.warning("Cannot create one client: working offline")
+        return False
+
+
 def create_session(session_folder, one=None):
     one = one or ONE()
     pfile = Path(lib_params.getfile("one_params"))
@@ -94,11 +104,12 @@ def update_alyx_params(data: dict, force: bool = False, one=None) -> dict:
     """ Updates keys in data dict to json field in alyx
     If keys don't exist already will skip them
     """
+    one = one or ONE()
     old = load_alyx_params(data["NAME"], one=one)
     if old is None:
         log.info("board params not found, creating...")
         new = rig_params.create_new_params_dict()
-        write_alyx_params(new)
+        write_alyx_params(new, one=one)
         old = load_alyx_params(new["NAME"], one=one)
 
     board = rig_params.get_board_name()
