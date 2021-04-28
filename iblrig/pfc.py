@@ -22,6 +22,7 @@ end with user input
 """
 import datetime
 import logging
+from pathlib import Path
 import struct
 
 import serial
@@ -38,7 +39,7 @@ log.setLevel(logging.DEBUG)
 
 
 def _grep_param_dict(pattern):
-    pardict = params.load_params_file()
+    pardict = params.load_params_file(silent=True)
     return {k: pardict[k] for k in pardict if pattern in k}
 
 
@@ -46,96 +47,116 @@ def params_comports_ok() -> bool:
     # Load PARAMS file ports
     # If file exists open file if not initialize
     subdict = _grep_param_dict("COM")
-    out = True if all(subdict.values) else False
+    out = True if all(subdict.values()) else False
     if not out:
-        log.warning(f"Not all comports are present: {subdict}")
-    log.debug("Loading params file...")
+        log.warning(f"Not all comports are present: \n{subdict}")
     return out
-
-
-def _
 
 
 def calibration_dates_ok() -> bool:
     """
-    {
-        "F2TTL_CALIBRATION_DATE": datetime.timedelta(days=7),
-        "SCREEN_FREQ_TEST_DATE": every 4 months,
-        "SCREEN_LUX_DATE": every 4 months,
-        "WATER_CALIBRATION_DATE": monthly,
-        "BPOD_TTL_TEST_DATE": every 4 months,
-    }
+    If dates and calibration values are inserted at the same time, checking dates
+    should be enough to know if the values are there.
     """
     subdict = _grep_param_dict("DATE")
+    thresh = {
+        "F2TTL_CALIBRATION_DATE": datetime.timedelta(days=7),
+        "SCREEN_FREQ_TEST_DATE": relativedelta(months=4),
+        "SCREEN_LUX_DATE": relativedelta(months=4),
+        "WATER_CALIBRATION_DATE": relativedelta(months=1),
+        "BPOD_TTL_TEST_DATE": relativedelta(months=4),
+    }
+    assert thresh.keys() == subdict.keys()
+
     today = datetime.datetime.now().date()
-    out = True if all(subdict.values()) else False
-    if not out:
+
+    cal_dates_exist = True if all(subdict.values()) else False
+    if not cal_dates_exist:
         log.warning(f"Not all calibration dates are present: {subdict}")
     else:
-        subdict = {k: datetime.datetime.strptime(v, "%Y-%m-%d") for k, v in subdict.items()}
-        if today - relativedelta(months=4)
+        subdict = {
+            k: datetime.datetime.strptime(v, "%Y-%m-%d").date()
+            for k, v in subdict.items()
+        }
+        out = dict.fromkeys(subdict)
+        for k in subdict:
+            out[k] = subdict[k] + thresh[k] < today
+    if not all(out.values()):
+        log.warning(f"Outdated calibrations: {[k for k, v in out.items() if not v]}")
+    return all(out.values())
 
 
-    datestr = str(datetime.datetime.now().date())
-    datetime.datetime.strptime(datestr, "%Y-%m-%d")
+def alyx_server_rig_ok() -> bin:
+    """
+    Try Alyx, try local server, try data folder
+    """
+    alyx_server_rig = 0b000
+    try:
+        ONE()
+        alyx_server_rig += 0b100
+    except BaseException as e:
+        log.warning(f"{e} \nCan't connect to Alyx.")
+
+    pars = _grep_param_dict("")
+    try:
+        list(Path(pars["DATA_FOLDER_REMOTE"]).glob("*"))
+        alyx_server_rig += 0b010
+    except BaseException as e:
+        log.warning(f"{e} \nCan't connect to local_server.")
+
+    try:
+        list(Path(pars["DATA_FOLDER_LOCAL"]).glob("*"))
+        alyx_server_rig += 0b001
+    except BaseException as e:
+        log.warning(f"{e} \nCan't find rig data folder.")
+
+    return bin(alyx_server_rig)
+
+
+def rotary_encoder_ok() -> bool:
+    # Check RE
+    try:
+        pars = _grep_param_dict("")
+        m = RotaryEncoderModule(pars["COM_ROTARY_ENCODER"])
+        m.set_zero_position()  # Not necessarily needed
+        m.close()
+        out = True
+    except BaseException as e:
+        log.warning(f"{e} \nCan't connect to Rotary Encoder.")
+        out = False
     return out
 
-# Check if Alyx is accessible
-log.debug("Alyx: Connecting...")
-one = ONE()
-# Check PARAMS values
-checks = []
-for k in PARAMS:
-    if PARAMS[k] is None or PARAMS[k] == "":
-        checks.append(1)
-        log.warning(f"{k}: Value not found")
-if sum(checks) != 0:
-    log.error("Missing values in params file")
-    raise (ValueError)
 
-# Check board name
-assert PARAMS["NAME"] == params.get_pybpod_board_name()
-# COM ports check
-assert PARAMS["COM_BPOD"] == params.get_pybpod_board_comport()
-PARAMS["COM_ROTARY_ENCODER"]
-PARAMS["COM_F2TTL"]
-# F2TTL CALIBRATION: check f2ttl values from params, warn if old calibration
-PARAMS["F2TTL_DARK_THRESH"]
-PARAMS["F2TTL_LIGHT_THRESH"]
-PARAMS["F2TTL_CALIBRATION_DATE"]
-# WATER CALIBRATION: check water calibration values from params, warn if old calibration
-log.debug("Checking water calibration...")
-PARAMS["WATER_CALIBRATION_RANGE"]
-PARAMS["WATER_CALIBRATION_OPEN_TIMES"]
-PARAMS["WATER_CALIBRATION_WEIGHT_PERDROP"]
-PARAMS["WATER_CALIBRATION_DATE"]
-# F2TTL CALIBRATION: check f2ttl values from params, warn if old calibration
-# WATER CALIBRATION: check water calibration values from params, warn if old calibration
-# raise BaseException
+def bpod_ok() -> bool:
+    # Check RE
+    out = False
+    try:
+        pars = _grep_param_dict("")
+        bpod = serial.Serial(port=pars["COM_BPOD"], baudrate=115200, timeout=1)
+        bpod.write(struct.pack("cB", b":", 0))
+        bpod.write(struct.pack("cB", b":", 1))
+        bpod.close()
+        out = True
+    except BaseException as e:
+        log.warning(f"{e} \nCan't connect to Bpod.")
+    return out
 
-# Check RE
-log.debug("RE: Connect")
-m = RotaryEncoderModule(PARAMS["COM_ROTARY_ENCODER"])
-log.debug("RE: set 0 position")
-m.set_zero_position()  # Not necessarily needed
-log.debug("RE: Close")
-m.close()
-# Check Bpod
-log.debug("Bpod Connect")
-ser = serial.Serial(port=PARAMS["COM_BPOD"], baudrate=115200, timeout=1)
-log.debug("Bpod lights OFF")
-ser.write(struct.pack("cB", b":", 0))
-log.debug("Bpod lights ON")
-ser.write(struct.pack("cB", b":", 1))
-log.debug("Bpod Close")
-ser.close()
-# Check Frame2TTL (by setting the thresholds)
-f = Frame2TTL(PARAMS["COM_F2TTL"])
-assert f.connected == True
-f.read_value() > 5
-f.set_thresholds(dark=PARAMS["F2TTL_DARK_THRESH"], light=PARAMS["F2TTL_LIGHT_THRESH"])
-f.close()
-# Check Mic connection?
+
+def f2ttl_ok() -> bool:
+    # Check Frame2TTL (by setting the thresholds)
+    out = False
+    try:
+        pars = _grep_param_dict("")
+        f = Frame2TTL(pars["COM_F2TTL"])
+        out = f.ser.isOpen()
+        f.set_thresholds(
+            dark=pars["F2TTL_DARK_THRESH"], light=pars["F2TTL_LIGHT_THRESH"]
+        )
+        f.close()
+    except BaseException as e:
+        log.warning(f"{e} \nCan't connect to Frame2TTL.")
+    return out
+
 
 # Check Xonar sound card existence if on ephys rig
 
@@ -153,5 +174,40 @@ f.close()
 # Create Alyx session reference? NO
 
 # Open Alyx session notes in browser? NO
+
+# Check Mic connection?
+################################
+# How TF do I find microphone????? not a com? USB Device
+# c/o https://python-sounddevice.readthedocs.io/en/0.4.1/examples.html#plot-microphone-signal-s-in-real-time
+# c/o https://python-sounddevice.readthedocs.io/en/0.4.1/examples.html#input-to-output-pass-through
+
+import pprint
+ports = serial.tools.list_ports.comports()
+for p in sorted(ports):
+    pprint.pprint(dict(p.__dict__.items()))
+
+import platform
+import glob
+# A function that tries to list serial ports on most common platforms
+def list_serial_ports():
+    system_name = platform.system()
+    if system_name == "Windows":
+        # Scan for available ports.
+        available = []
+        for i in range(256):
+            port = f"COM{i}"
+            try:
+                s = serial.Serial(port)
+                available.append(port)
+                s.close()
+            except serial.SerialException:
+                pass
+        return available
+    elif system_name == "Darwin":
+        # Mac
+        return glob.glob('/dev/tty*') + glob.glob('/dev/cu*')
+    else:
+        # Assume Linux or something else
+        return glob.glob('/dev/ttyS*') + glob.glob('/dev/ttyUSB*')
 
 print(".")
