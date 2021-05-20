@@ -22,14 +22,16 @@ end with user input
 """
 import datetime
 import logging
-from pathlib import Path
 import struct
+from pathlib import Path
 
 import serial
 import serial.tools.list_ports
 from dateutil.relativedelta import relativedelta
 from oneibl.one import ONE
 from pybpod_rotaryencoder_module.module_api import RotaryEncoderModule
+from pybpod_soundcard_module.module_api import SoundCardModule
+from pybpodapi.protocol import Bpod
 
 import iblrig.logging_  # noqa
 import iblrig.params as params
@@ -39,9 +41,16 @@ log = logging.getLogger("iblrig")
 log.setLevel(logging.DEBUG)
 
 
-def _grep_param_dict(pattern):
-    pardict = params.load_params_file(silent=True)
-    return {k: pardict[k] for k in pardict if pattern in k}
+def _grep_param_dict(pattern: str = "") -> dict or str:
+    """
+    Returns subdict of all matches of pattern
+    If subdict only has one entry will return just the value
+    """
+    pardict = params.load_params_file()
+    out = {k: pardict[k] for k in pardict if pattern in k}
+    if len(out) == 1:
+        out = list(out.values())[0]
+    return out
 
 
 def params_comports_ok() -> bool:
@@ -94,12 +103,12 @@ def alyx_ok() -> bool:
         ONE()
         out = True
     except BaseException as e:
-        log.warning(f"Can't connect to Alyx.")
+        log.warning(f"{e}\nCan't connect to Alyx.")
     return out
 
 
 def local_server_ok() -> bool:
-    pars = _grep_param_dict("")
+    pars = _grep_param_dict()
     out = Path(pars["DATA_FOLDER_REMOTE"]).exists()
     if not out:
         log.warning(f"Can't connect to local_server.")
@@ -107,7 +116,7 @@ def local_server_ok() -> bool:
 
 
 def rig_data_folder_ok() -> bool:
-    pars = _grep_param_dict("")
+    pars = _grep_param_dict()
     out = Path(pars["DATA_FOLDER_LOCAL"]).exists()
     if not out:
         log.warning(f"Can't connect to local_server.")
@@ -125,7 +134,7 @@ def alyx_server_rig_ok() -> bin:
     except BaseException as e:
         log.warning(f"{e} \nCan't connect to Alyx.")
 
-    pars = _grep_param_dict("")
+    pars = _grep_param_dict()
     try:
         list(Path(pars["DATA_FOLDER_REMOTE"]).glob("*"))
         alyx_server_rig += 0b010
@@ -144,7 +153,7 @@ def alyx_server_rig_ok() -> bin:
 def rotary_encoder_ok() -> bool:
     # Check RE
     try:
-        pars = _grep_param_dict("")
+        pars = _grep_param_dict()
         m = RotaryEncoderModule(pars["COM_ROTARY_ENCODER"])
         m.set_zero_position()  # Not necessarily needed
         m.close()
@@ -156,10 +165,10 @@ def rotary_encoder_ok() -> bool:
 
 
 def bpod_ok() -> bool:
-    # Check RE
+    # Check Bpod
     out = False
     try:
-        pars = _grep_param_dict("")
+        pars = _grep_param_dict()
         bpod = serial.Serial(port=pars["COM_BPOD"], baudrate=115200, timeout=1)
         bpod.write(struct.pack("cB", b":", 0))
         bpod.write(struct.pack("cB", b":", 1))
@@ -170,11 +179,45 @@ def bpod_ok() -> bool:
     return out
 
 
+def bpod_modules_ok() -> bool:
+    # List bpod modules
+    # figure out if RE is in Module 1, Ambient sensore in port 2 and
+    # if ephys in board name if SoundCard in port 3
+    ephys_rig = "ephys" in _grep_param_dict("NAME")
+    if ephys_rig:
+        expected_modules = [
+            "RotaryEncoder1",
+            "AmbientModule1",
+            "SoundCard1",
+        ]
+    else:
+        expected_modules = [
+            "RotaryEncoder1",
+            "AmbientModule1",
+        ]
+    out = False
+    try:
+        comport = _grep_param_dict("COM_BPOD")
+        bpod = Bpod(serial_port=comport)
+        mods = [x.name for x in bpod.modules]
+        bpod.close()
+        oks = [x in mods for x in expected_modules]
+        if all(oks):
+            out = True
+        else:
+            missing = set(expected_modules) - set(mods)
+            log.warning(f"Missing modules: {missing}")
+    except BaseException as e:
+        log.warning(f"{e} \nCan't check modules from Bpod.")
+
+    return out
+
+
 def f2ttl_ok() -> bool:
     # Check Frame2TTL (by setting the thresholds)
     out = False
     try:
-        pars = _grep_param_dict("")
+        pars = _grep_param_dict()
         f = Frame2TTL(pars["COM_F2TTL"])
         out = f.ser.isOpen()
         f.close()
@@ -182,13 +225,39 @@ def f2ttl_ok() -> bool:
         log.warning(f"{e} \nCan't connect to Frame2TTL.")
     return out
 
+
 def check_rig() -> bool:
     pass
 
-# Check Xonar sound card existence if on ephys rig
+
+def xonar_ok() -> bool:
+    # Check Xonar sound card existence if on ephys rig don't need it
+    ephys_rig = "ephys" in _grep_param_dict("NAME")
+    if ephys_rig:
+        return True
+    out = False
+    try:
+        import sounddevice as sd
+
+        devices = sd.query_devices()
+        xonar = [
+            (i, d) for i, d in enumerate(devices) if "XONAR SOUND CARD(64)" in d["name"]
+        ]
+        if len(xonar) == 1:
+            out = True
+    except BaseException as e:
+        log.warning(f"{e} \nCan't query system sound devices.")
+
+    return out
+
+
+def HarpSoundCard_ok() -> bool:
+    ephys_rig = "ephys" in _grep_param_dict("NAME")
+
 
 # Check HarpSoundCard if on ephys rig
 
+# Check Mic connection?
 # Cameras check + setup
 # iblrig.camera_config
 
@@ -198,43 +267,93 @@ def check_rig() -> bool:
 
 # Create missing session folders
 
-# Create Alyx session reference? NO
-
-# Open Alyx session notes in browser? NO
-
-# Check Mic connection?
 ################################
 # How TF do I find microphone????? not a com? USB Device
 # c/o https://python-sounddevice.readthedocs.io/en/0.4.1/examples.html#plot-microphone-signal-s-in-real-time
 # c/o https://python-sounddevice.readthedocs.io/en/0.4.1/examples.html#input-to-output-pass-through
 
+# Create Alyx session reference? NO
+
+# Open Alyx session notes in browser? NO
+
 import pprint
+
 ports = serial.tools.list_ports.comports()
 for p in sorted(ports):
     pprint.pprint(dict(p.__dict__.items()))
 
-import platform
 import glob
+import platform
+
+
 # A function that tries to list serial ports on most common platforms
 def list_serial_ports():
-    system_name = platform.system()
-    if system_name == "Windows":
-        # Scan for available ports.
-        available = []
-        for i in range(256):
-            port = f"COM{i}"
-            try:
-                s = serial.Serial(port)
-                available.append(port)
-                s.close()
-            except serial.SerialException:
-                pass
-        return available
-    elif system_name == "Darwin":
-        # Mac
-        return glob.glob('/dev/tty*') + glob.glob('/dev/cu*')
-    else:
-        # Assume Linux or something else
-        return glob.glob('/dev/ttyS*') + glob.glob('/dev/ttyUSB*')
+    import win32com.client
+
+    objSWbemServices = win32com.client.Dispatch(
+        "WbemScripting.SWbemLocator"
+    ).ConnectServer(".", "root\cimv2")
+
+    devices = [i for i in objSWbemServices.ExecQuery("SELECT * FROM Win32_PnPEntity")]
+    fields = (
+        "Availability",
+        "Caption",
+        "ClassGuid",
+        "ConfigManagerUserConfig",
+        "CreationClassName",
+        "Description",
+        "DeviceID",
+        "ErrorCleared",
+        "ErrorDescription",
+        "InstallDate",
+        "LastErrorCode",
+        "Manufacturer",
+        "Name",
+        "PNPDeviceID",
+        "PowerManagementCapabilities ",
+        "PowerManagementSupported",
+        "Service",
+        "Status",
+        "StatusInfo",
+        "SystemCreationClassName",
+        "SystemName",
+        "----------",
+    )
+    bla = [getattr(x, y, None) for x in devices for y in ("Caption", "Name", "----")]
+    bla = {i: {y: getattr(x, y, None)} for i, x in enumerate(devices) for y in fields}
+
+    dev_dicts = {}
+    for i, d in enumerate(devices):
+        dev_dicts[i].update({y: getattr(d, y, None) for y in fields})
+
+    for item in objSWbemServices.ExecQuery("SELECT * FROM Win32_PnPEntity"):
+        print("-" * 60)
+        for name in (
+            "Availability",
+            "Caption",
+            "ClassGuid",
+            "ConfigManagerUserConfig",
+            "CreationClassName",
+            "Description",
+            "DeviceID",
+            "ErrorCleared",
+            "ErrorDescription",
+            "InstallDate",
+            "LastErrorCode",
+            "Manufacturer",
+            "Name",
+            "PNPDeviceID",
+            "PowerManagementCapabilities ",
+            "PowerManagementSupported",
+            "Service",
+            "Status",
+            "StatusInfo",
+            "SystemCreationClassName",
+            "SystemName",
+        ):
+            a = getattr(item, name, None)
+            if a is not None:
+                print("%s: %s" % (name, a))
+
 
 print(".")

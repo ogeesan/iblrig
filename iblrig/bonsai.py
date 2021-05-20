@@ -134,10 +134,6 @@ else:
         return
 
     def start_camera_recording(sph):
-        if sph.RECORD_VIDEO is False and sph.OPEN_CAMERA_VIEW is False:
-            log.error("Task will hang waiting for camera frame sync pulse")
-            raise (UnboundLocalError)
-            return
         # Run Workflow
         here = os.getcwd()
         os.chdir(sph.VIDEO_RECORDING_FOLDER)
@@ -145,20 +141,24 @@ else:
         bns = sph.BONSAI
         wkfl = sph.VIDEO_RECORDING_FILE
 
-        ts = "-p:TimestampsFileName=" + os.path.join(
-            sph.SESSION_RAW_VIDEO_DATA_FOLDER, "_iblrig_leftCamera.timestamps.ssv"
-        )
-        vid = "-p:VideoFileName=" + os.path.join(
+        vid = "-p:FileNameLeft=" + os.path.join(
             sph.SESSION_RAW_VIDEO_DATA_FOLDER, "_iblrig_leftCamera.raw.avi"
         )
-        fc = "-p:FrameCounterFileName=" + os.path.join(
-            sph.SESSION_RAW_VIDEO_DATA_FOLDER, "_iblrig_leftCamera.frame_counter.bin"
+        fd = "-p:FileNameLeftData=" + os.path.join(
+            sph.SESSION_RAW_VIDEO_DATA_FOLDER, "_iblrig_leftCamera.FrameData.bin"
         )
-        gpio = "-p:GPIOFileName=" + os.path.join(
-            sph.SESSION_RAW_VIDEO_DATA_FOLDER, "_iblrig_leftCamera.GPIO.bin"
-        )
-
-        rec = "-p:SaveVideo=" + str(sph.RECORD_VIDEO)
+        # ts = "-p:TimestampsFileName=" + os.path.join(
+        #     sph.SESSION_RAW_VIDEO_DATA_FOLDER, "_iblrig_leftCamera.timestamps.ssv"
+        # )
+        # vid = "-p:VideoFileName=" + os.path.join(
+        #     sph.SESSION_RAW_VIDEO_DATA_FOLDER, "_iblrig_leftCamera.raw.avi"
+        # )
+        # fc = "-p:FrameCounterFileName=" + os.path.join(
+        #     sph.SESSION_RAW_VIDEO_DATA_FOLDER, "_iblrig_leftCamera.frame_counter.bin"
+        # )
+        # gpio = "-p:GPIOFileName=" + os.path.join(
+        #     sph.SESSION_RAW_VIDEO_DATA_FOLDER, "_iblrig_leftCamera.GPIO.bin"
+        # )
 
         mic = "-p:FileNameMic=" + os.path.join(
             sph.SESSION_RAW_DATA_FOLDER, "_iblrig_micData.raw.wav"
@@ -168,7 +168,8 @@ else:
         start = "--start"
         noboot = "--no-boot"
 
-        subprocess.Popen([bns, wkfl, start, ts, vid, fc, gpio, rec, mic, srec, noboot])
+        # subprocess.Popen([bns, wkfl, start, ts, vid, fc, gpio, mic, srec, noboot])
+        subprocess.Popen([bns, wkfl, start, vid, fd, mic, srec, noboot])
         os.chdir(here)
         return
 
@@ -236,7 +237,6 @@ else:
         tph.osc_client.send_message("/s", tph.stim_sigma)
         tph.osc_client.send_message("/r", tph.stim_reverse)
 
-
     def send_stim_info(
         osc_client,
         trial_num,
@@ -301,6 +301,25 @@ else:
         os.chdir(here)
         return s
 
+    def start_screen_color():
+        here = os.getcwd()
+        iblrig_folder_path = Path(ph.get_iblrig_folder())
+        os.chdir(str(iblrig_folder_path / "visual_stim" / "f2ttl_calibration"))
+        bns = ph.get_bonsai_path()
+        wrkfl = str(
+            iblrig_folder_path
+            / "visual_stim"
+            / "f2ttl_calibration"
+            / "screen_color.bonsai"
+        )
+        noedit = "--no-editor"  # implies start
+        # nodebug = '--start-no-debug'
+        # start = '--start'
+        noboot = "--no-boot"
+        editor = noedit
+        subprocess.Popen([bns, wrkfl, editor, noboot])
+        time.sleep(3)
+        os.chdir(here)
 
 def stop_wrkfl(name):
     ports = {

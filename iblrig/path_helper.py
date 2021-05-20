@@ -329,19 +329,17 @@ def get_bonsai_path(use_iblrig_bonsai: bool = True) -> str:
 
 
 def get_visual_stim_type(protocol: str) -> str:
-    if "habituation" in protocol or "bpod_ttl_test" in protocol:
-        return "GaborHabituationTask"
+    if "bpod_ttl_test" in protocol:
+        return "GaborTestStimuli"
     elif "ephys_certification" in protocol:
         return "ephys_certification"
-    elif "passive" in protocol:
-        return "GaborIBLTask"
     else:
         return "GaborIBLTask"
 
 
 def get_visual_stim_file_name(visual_stimulus_type: str) -> str:
-    if "GaborHabituationTask" in visual_stimulus_type:
-        return "Gabor2D.bonsai"
+    if "GaborTestStimuli" in visual_stimulus_type:
+        return "Gabor2D_TTLTest.bonsai"
     elif "ephys_certification" in visual_stimulus_type:
         return "ephys_certification.bonsai"
     elif "GaborIBLTask" in visual_stimulus_type:
@@ -412,7 +410,7 @@ class SessionPathCreator(object):
         self.VIDEO_RECORDING_FOLDER = os.path.join(
             self.IBLRIG_FOLDER, "devices", "camera_recordings"
         )
-        self.VIDEO_RECORDING_FILE = os.path.join(self.VIDEO_RECORDING_FOLDER, "one_camera.bonsai")
+        self.VIDEO_RECORDING_FILE = os.path.join(self.VIDEO_RECORDING_FOLDER, "TrainingRig_SaveVideo_TrainingTasks.bonsai")
 
         self.MIC_RECORDING_FOLDER = os.path.join(self.IBLRIG_FOLDER, "devices", "microphone")
         self.MIC_RECORDING_FILE = os.path.join(self.MIC_RECORDING_FOLDER, "record_mic.bonsai")
