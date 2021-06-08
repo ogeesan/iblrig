@@ -56,15 +56,15 @@ class SessionParamHandler(object):
         # =====================================================================
         # SETTINGS
         # =====================================================================
-        self.RECORD_SOUND = True
+        self.RECORD_SOUND = False
         self.RECORD_AMBIENT_SENSOR_DATA = True
-        self.RECORD_VIDEO = True
-        self.OPEN_CAMERA_VIEW = True  # Always True if RECORD_VIDEO is True
+        self.RECORD_VIDEO = False
+        self.OPEN_CAMERA_VIEW = False  # Always True if RECORD_VIDEO is True
 
-        self.SPONTANEOUS_DURATION = 1
+        self.SPONTANEOUS_DURATION = 6 * 60
         self.OPTO_TIMES = 100
-        self.OPTO_DURATION = 2
-        self.OPTO_INTERVAL = 1
+        self.OPTO_DURATION = 1
+        self.OPTO_INTERVAL = 3
 
         # =====================================================================
         # SUBJECT
@@ -79,11 +79,6 @@ class SessionParamHandler(object):
         self.OSC_CLIENT = udp_client.SimpleUDPClient(
             self.OSC_CLIENT_IP, self.OSC_CLIENT_PORT
         )
-        # =====================================================================
-        # frame2TTL
-        # =====================================================================
-        # XXX: device
-        self.F2TTL_GET_AND_SET_THRESHOLDS = frame2TTL.get_and_set_thresholds()
         # =====================================================================
         # SAVE SETTINGS FILE AND TASK CODE
         # =====================================================================

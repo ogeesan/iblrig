@@ -197,7 +197,7 @@ for i in range(sph.NTRIALS):  # Main loop
     sma.add_state(
         state_name="reward",
         state_timer=tph.reward_valve_time,
-        output_actions=[("Valve1", 255)],
+        output_actions=[("Valve1", 255), ("BNC1", 255)],
         state_change_conditions={"Tup": "correct"},
     )
 
@@ -222,7 +222,7 @@ for i in range(sph.NTRIALS):  # Main loop
     sma.add_state(
         state_name="exit_state",
         state_timer=0.5,
-        output_actions=[],
+        output_actions=[("BNC1", 255)],
         state_change_conditions={"Tup": "exit"},
     )
 

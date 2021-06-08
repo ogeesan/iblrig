@@ -37,25 +37,12 @@ msg = BpodMessageCreator(bpod)
 bpod = msg.return_bpod()
 
 
-def opto_stim_on(bpod, stim_duration):
+def opto_stim(bpod):
     sma = StateMachine(bpod)
     sma.add_state(
         state_name="opto_on",
-        state_timer=stim_duration,
+        state_timer=0.1,
         output_actions=[("BNC2", 255)],  # To FPGA
-        state_change_conditions={"Tup": "exit"},
-    )
-    bpod.send_state_machine(sma)
-    bpod.run_state_machine(sma)  # Locks until state machine 'exit' is reached
-    return
-
-
-def opto_stim_off(bpod, interval_duration):
-    sma = StateMachine(bpod)
-    sma.add_state(
-        state_name="opto_off",
-        state_timer=interval_duration,
-        output_actions=[("BNC2", 0)],  # To FPGA
         state_change_conditions={"Tup": "exit"},
     )
     bpod.send_state_machine(sma)
@@ -71,8 +58,10 @@ time.sleep(sph.SPONTANEOUS_DURATION)
 log.info("Starting optogenetic stimulation")
 for i in range(sph.OPTO_TIMES):
     log.info("Stimulation %d of %d" % (i + 1, sph.OPTO_TIMES))
-    opto_stim_on(bpod, sph.OPTO_DURATION)
-    opto_stim_off(bpod, sph.OPTO_INTERVAL)
+    opto_stim(bpod)
+    time.sleep(sph.OPTO_DURATION - 0.1)
+    opto_stim(bpod)
+    time.sleep(sph.OPTO_INTERVAL - 0.1)
 
 bpod.close()
 # Turn bpod light's back on

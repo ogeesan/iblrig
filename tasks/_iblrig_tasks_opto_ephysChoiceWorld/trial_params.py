@@ -23,8 +23,10 @@ log = logging.getLogger("iblrig")
 
 
 def init_laser_block_len(tph):
-    if tph.block_init_5050:
+    if (tph.block_init_5050) and not (tph.laser_half_half):
         return 90
+    elif tph.laser_half_half:
+        return tph.laser_half_trials
     else:
         laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
                                         min_=tph.laser_block_len_min,
@@ -43,15 +45,18 @@ def update_laser_block_params(tph):
     if tph.laser_block_trial_num > tph.laser_block_len:
         tph.laser_block_num += 1
         tph.laser_block_trial_num = 1
-        laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
-                                        min_=tph.laser_block_len_min,
-                                        max_=tph.laser_block_len_max))
-        while ((tph.block_len - tph.block_trial_num) - tph.laser_transition_min
-                <= laser_block_len
-                <= (tph.block_len - tph.block_trial_num) + tph.laser_transition_min):
+        if tph.laser_half_half:
+            laser_block_len = 1000
+        else:    
             laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
                                             min_=tph.laser_block_len_min,
                                             max_=tph.laser_block_len_max))
+            while ((tph.block_len - tph.block_trial_num) - tph.laser_transition_min
+                    <= laser_block_len
+                    <= (tph.block_len - tph.block_trial_num) + tph.laser_transition_min):
+                laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
+                                                min_=tph.laser_block_len_min,
+                                                max_=tph.laser_block_len_max))
     return tph
 
 
@@ -61,14 +66,14 @@ def get_laser_probability(tph):
     elif tph.stim_probability_left == 0.5:
         return 0
     elif tph.laser_block:
-        return tph.laser_prob_0
+        return tph.laser_prob_0_stim
     elif not tph.laser_block:
-        return 1 - tph.laser_prob_0
+        return tph.laser_prob_0_nostim
 
 
 def update_laser_stimulation(tph):    
     if (tph.laser_block_trial_num == 1):
-        if (tph.laser_block_num == 2) and tph.block_init_5050:
+        if (tph.laser_block_num == 2) and tph.block_init_5050 and not tph.laser_half_half:
             tph.laser_block = bool(np.random.choice([1, 0]))
         else:
             tph.laser_block = not tph.laser_block
@@ -153,18 +158,24 @@ class TrialParamHandler(object):
         self.signed_contrast = self.contrast * np.sign(self.position)
         self.signed_contrast_buffer = [self.signed_contrast]
         # Laser
+        self.laser_half_half = sph.LASER_HALF_HALF
+        self.laser_half_trials = sph.LASER_HALF_TRIALS
+        self.laser_first_half_on = sph.LASER_FIRST_HALF_ON
         self.laser_block_num = 0
         self.laser_block_trial_num = 0
         self.laser_block_len_factor = sph.LASER_BLOCK_LEN_FACTOR
         self.laser_block_len_min = sph.LASER_BLOCK_LEN_MIN
         self.laser_block_len_max = sph.LASER_BLOCK_LEN_MAX
-        self.laser_prob_0 = sph.LASER_PROB_0
+        self.laser_prob_0_stim = sph.LASER_PROB_0_STIM
+        self.laser_prob_0_nostim = sph.LASER_PROB_0_NOSTIM
         self.laser_transition_min = sph.LASER_TRANSITION_MIN
         self.laser_block_len = init_laser_block_len(self)
-        if self.block_init_5050:
+        if (self.block_init_5050) and not (self.laser_half_half):
             self.laser_stimulation = False
-        else:
+        elif not (self.block_init_5050) and not (self.laser_half_half):
             self.laser_stimulation = bool(np.random.choice([True, False]))
+        elif self.laser_half_half:
+            self.laser_stimulation = self.laser_first_half_on
         if self.laser_stimulation:
             self.laser_out = self.out_laser_on
             self.laser_block = True
