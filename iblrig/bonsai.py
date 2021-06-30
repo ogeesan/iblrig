@@ -330,7 +330,7 @@ def stop_wrkfl(name):
     if name in ports:
         osc_port = ports[name]
     else:
-        log.warning(f"Unknown name: {name}")
+        log.warning(f"Unknown name: {name}\nValid workflow names: {list(ports.keys())}")
         osc_port = 0
     OSC_CLIENT_IP = "127.0.0.1"
     OSC_CLIENT_PORT = int(osc_port)

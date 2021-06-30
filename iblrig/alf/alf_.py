@@ -53,7 +53,7 @@ def get_alf_dir_from_one(one: ONE = None) -> str:
 
 
 # Create/Sync .alf/subjects.metadata.json
-one = ONE(base_url='https://alyx.internationalbrainlab.org')
+# one = ONE(base_url='https://alyx.internationalbrainlab.org')
 # Create/Sync .alf/lab_locations.metadata.json
 # Create/Sync .alf/users.metadata.json
 
