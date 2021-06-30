@@ -39,15 +39,15 @@ BLOCK_PROBABILITY_SET = [0.2, 0.8]
 BLOCK_LEN_FACTOR = 60
 BLOCK_LEN_MIN = 20
 BLOCK_LEN_MAX = 100
-# LASER
-LASER_HALF_HALF = True
+# LASER 
+LASER_HALF_HALF = False
 LASER_HALF_TRIALS = 1000
 LASER_FIRST_HALF_ON = False
 LASER_BLOCK_LEN_FACTOR = 60
 LASER_BLOCK_LEN_MIN = 20
 LASER_BLOCK_LEN_MAX = 100
 LASER_PROB_0_STIM = 0.75  # Probability of laser stimulation during stimulated blocks in 0% contrast trials
-LASER_PROB_0_NOSTIM = 0.5  # Probability of laser stimulation during non-stimulated blocks in 0% contrast trials
+LASER_PROB_0_NOSTIM = 0.25  # Probability of laser stimulation during non-stimulated blocks in 0% contrast trials
 LASER_TRANSITION_MIN = 10  # Number of trials before and after block switch in which no laser block switch may occur
 # POSITIONS
 STIM_POSITIONS = [-35, 35]  # All possible positions for this session (deg)

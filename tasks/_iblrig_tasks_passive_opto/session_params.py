@@ -62,7 +62,7 @@ class SessionParamHandler(object):
         self.OPEN_CAMERA_VIEW = False  # Always True if RECORD_VIDEO is True
 
         self.SPONTANEOUS_DURATION = 6 * 60
-        self.OPTO_TIMES = 100
+        self.OPTO_TIMES = 30
         self.OPTO_DURATION = 1
         self.OPTO_INTERVAL = 3
 

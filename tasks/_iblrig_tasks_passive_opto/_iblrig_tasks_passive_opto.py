@@ -35,6 +35,8 @@ bpod = Bpod()
 # Build messages
 msg = BpodMessageCreator(bpod)
 bpod = msg.return_bpod()
+if sph.OPTO_DURATION > 1:
+    raise NameError('Opto duration cannot be longer than 1 second (this is hard coded in the driver)')
 
 
 def opto_stim(bpod):
@@ -62,6 +64,7 @@ for i in range(sph.OPTO_TIMES):
     time.sleep(sph.OPTO_DURATION - 0.1)
     opto_stim(bpod)
     time.sleep(sph.OPTO_INTERVAL - 0.1)
+
 
 bpod.close()
 # Turn bpod light's back on

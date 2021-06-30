@@ -37,7 +37,7 @@ def init_laser_block_len(tph):
             laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
                                             min_=tph.laser_block_len_min,
                                             max_=tph.laser_block_len_max))
-    return laser_block_len
+    return laser_block_len       
 
 
 def update_laser_block_params(tph):
@@ -46,17 +46,17 @@ def update_laser_block_params(tph):
         tph.laser_block_num += 1
         tph.laser_block_trial_num = 1
         if tph.laser_half_half:
-            tph.laser_block_len = 1000
-        else:
-            tph.laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
+            laser_block_len = 1000
+        else:    
+            laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
+                                            min_=tph.laser_block_len_min,
+                                            max_=tph.laser_block_len_max))
+            while ((tph.block_len - tph.block_trial_num) - tph.laser_transition_min
+                    <= laser_block_len
+                    <= (tph.block_len - tph.block_trial_num) + tph.laser_transition_min):
+                laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
                                                 min_=tph.laser_block_len_min,
                                                 max_=tph.laser_block_len_max))
-            while ((tph.block_len - tph.block_trial_num) - tph.laser_transition_min
-                    <= tph.laser_block_len
-                    <= (tph.block_len - tph.block_trial_num) + tph.laser_transition_min):
-                tph.laser_block_len = int(misc.texp(factor=tph.laser_block_len_factor,
-                                                    min_=tph.laser_block_len_min,
-                                                    max_=tph.laser_block_len_max))
     return tph
 
 
@@ -71,7 +71,7 @@ def get_laser_probability(tph):
         return tph.laser_prob_0_nostim
 
 
-def update_laser_stimulation(tph):
+def update_laser_stimulation(tph):    
     if (tph.laser_block_trial_num == 1):
         if (tph.laser_block_num == 2) and tph.block_init_5050 and not tph.laser_half_half:
             tph.laser_block = bool(np.random.choice([1, 0]))
@@ -297,7 +297,7 @@ TIME FROM START:      {self.elapsed_time}
             self.laser_out = self.out_laser_on
         else:
             self.laser_out = self.out_laser_off
-
+       
         # Update state machine events
         self.event_error = self.threshold_events_dict[self.position]
         self.event_reward = self.threshold_events_dict[-self.position]
