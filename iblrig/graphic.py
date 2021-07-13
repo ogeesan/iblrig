@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-# @Author: Niccolò Bonacchi
+# @File: iblrig/graphic.py
+# @Author: Niccolo' Bonacchi (@nbonacchi)
 # @Date: Sunday, February 3rd 2019, 11:59:56 am
 import tkinter as tk
 from tkinter import simpledialog

@@ -10,7 +10,7 @@ Purge data from RIG
 sessions and files on Flatiron
 - Delete local raw file if found on Flatiron
 """
-from ibllib.pipes.purge_rig_data import purge_local_data
+from iblrig.purge_rig_data import purge_local_data
 import logging
 import argparse
 
