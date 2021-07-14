@@ -19,7 +19,7 @@ class TestIBLRigImports(unittest.TestCase):
         from ibllib.io import raw_data_loaders as raw  # noqa               .raw_data_loaders
         from ibllib.misc import logger_config  # noqa                       ==
         from ibllib.pipes.purge_rig_data import purge_local_data  # noqa    .purge_rig_data
-        from ibllib.pipes.transfer_rig_data import main  # noqa            .transfer_rig_data
+        from ibllib.pipes.transfer_rig_data import main  # noqa             .transfer_rig_data
         from oneibl.one import ONE  # noqa                                one.api.ONE
         from oneibl.registration import RegistrationClient  # noqa        one.api.ONE
 
