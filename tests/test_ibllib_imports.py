@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+# @File: tests/test_ibllib_imports.py
+# @Author: Niccolo' Bonacchi (@nbonacchi)
+# @Date: Thursday, July 30th 2020, 2:54:22 pm
 import unittest
 
 

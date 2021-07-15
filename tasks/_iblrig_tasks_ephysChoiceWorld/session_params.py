@@ -9,8 +9,6 @@ from pathlib import Path
 from sys import platform
 from tkinter import messagebox
 
-from pythonosc import udp_client
-
 import iblrig.adaptive as adaptive
 import iblrig.ambient_sensor as ambient_sensor
 import iblrig.bonsai as bonsai
@@ -21,6 +19,7 @@ import iblrig.sound as sound
 import iblrig.user_input as user_input
 from iblrig.path_helper import SessionPathCreator
 from iblrig.rotary_encoder import MyRotaryEncoder
+from pythonosc import udp_client
 
 log = logging.getLogger("iblrig")
 
@@ -229,7 +228,7 @@ class SessionParamHandler(object):
             "Please start recording in spikeglx then press OK\n"
             + "Behavior task will run after you start the bonsai workflow"
         )
-        # from ibllib.graphic import popup
+        # from iblrig.graphic import popup
         # popup(title, msg)
         root = tk.Tk()
         root.withdraw()
@@ -331,9 +330,10 @@ if __name__ == "__main__":
         calling bonsai
         turning off lights of bpod board
     """
+    import datetime
+
     import iblrig.fake_task_settings as _task_settings
     import iblrig.fake_user_settings as _user_settings
-    import datetime
 
     dt = datetime.datetime.now()
     dt = [

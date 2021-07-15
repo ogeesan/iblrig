@@ -5,7 +5,6 @@ import ast
 import logging
 import sys
 
-import ibllib.graphic as graph
 import pyforms
 from AnyQt.QtWidgets import QApplication
 from oneibl.one import ONE
@@ -13,6 +12,7 @@ from pyforms.basewidget import BaseWidget
 from pyforms.controls import (ControlButton, ControlCheckBox, ControlLabel,
                               ControlText)
 
+import iblrig.graphic as graph
 import iblrig.logging_
 from iblrig.misc import patch_settings_file
 

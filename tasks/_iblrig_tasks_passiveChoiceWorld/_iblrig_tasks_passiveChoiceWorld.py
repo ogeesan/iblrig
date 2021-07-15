@@ -6,20 +6,20 @@ import logging
 import sys
 import time
 
-import numpy as np
-import usb
-from ibllib.graphic import popup
-from pybpodapi.protocol import Bpod, StateMachine
-
 import iblrig.bonsai as bonsai
 import iblrig.frame2TTL as frame2TTL
 import iblrig.iotasks as iotasks
 import iblrig.misc as misc
 import iblrig.params as params
-import task_settings
+import numpy as np
+import usb
 import user_settings
 from iblrig.bpod_helper import BpodMessageCreator, bpod_lights
+from iblrig.graphic import popup
 from iblrig.rotary_encoder import MyRotaryEncoder
+from pybpodapi.protocol import Bpod, StateMachine
+
+import task_settings
 from session_params import SessionParamHandler
 
 log = logging.getLogger("iblrig")

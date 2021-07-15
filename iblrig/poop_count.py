@@ -5,8 +5,8 @@
 from pathlib import Path
 
 from dateutil import parser
-from ibllib.graphic import numinput
 
+from iblrig.graphic import numinput
 from iblrig.misc import patch_settings_file
 
 IBLRIG_DATA = (

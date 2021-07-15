@@ -12,22 +12,21 @@ import time
 import tkinter as tk
 from tkinter import messagebox
 
+import iblrig.alyx as alyx
+import iblrig.params as params
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy as sp
 import seaborn as sns  # for easier plotting at the end
 import serial
-from ibllib.graphic import numinput
+import user_settings  # PyBpod creates this file on run.
+from iblrig.graphic import numinput
 from pybpodapi.bpod import Bpod
 from pybpodapi.state_machine import StateMachine
 
-import iblrig.alyx as alyx
-import iblrig.params as params
-
 # import iblrig.path_helper as path_helper
 import task_settings
-import user_settings  # PyBpod creates this file on run.
 from session_params import SessionParamHandler
 
 sph = SessionParamHandler(task_settings, user_settings)

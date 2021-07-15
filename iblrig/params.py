@@ -9,12 +9,12 @@ import re
 import shutil
 from pathlib import Path
 
-from ibllib.graphic import strinput
 from pybpodgui_api.models.project import Project
 
 import iblrig.alyx as alyx
 import iblrig.logging_  # noqa
 import iblrig.path_helper as ph
+from iblrig.graphic import strinput
 
 log = logging.getLogger("iblrig")
 
