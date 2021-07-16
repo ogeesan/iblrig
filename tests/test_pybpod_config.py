@@ -31,7 +31,7 @@ class TestsPybpodConfig(unittest.TestCase):
         self.assertTrue(isinstance(p, dict))
 
         u = config.create_alyx_user(self.project_name, one=one, force=False)
-        self.assertTrue(self.project_path.joinpath("users", one._par.ALYX_LOGIN).exists())
+        self.assertTrue(self.project_path.joinpath("users", one.alyx.user).exists())
         self.assertTrue(self.project_path.joinpath("users", "_iblrig_test_user").exists())
         self.assertTrue(self.project_path.exists())
         self.assertTrue(isinstance(u, dict))
