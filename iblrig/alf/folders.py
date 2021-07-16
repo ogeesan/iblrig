@@ -122,8 +122,9 @@ def find_mouse_sessions(folder, mouse):
 
 
 def search(**kwargs):
-    from oneibl.one import SEARCH_TERMS
-    print(set(SEARCH_TERMS.values()))
+    from one.api import ONE
+    one = ONE()
+    print(one.search_terms())
 
 
 if __name__ == "__main__":

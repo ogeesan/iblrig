@@ -103,8 +103,8 @@ def load_data(session_path: Union[str, Path], time='absolute'):
     return data
 
 
-def load_camera_FrameData(session_path, camera: str = 'left', raw: bool = False) -> pd.DataFrame:
-    """ Loads binary FrameData from Bonsai camera recording workflow.
+def load_camera_frameData(session_path, camera: str = 'left', raw: bool = False) -> pd.DataFrame:
+    """ Loads binary frame data from Bonsai camera recording workflow.
 
     Args:
         session_path (StrPath): Path to session folder
@@ -123,36 +123,36 @@ def load_camera_FrameData(session_path, camera: str = 'left', raw: bool = False)
             }
         raw:
             pandas.DataFrame: 4 int64 columns: {
-                Timestamp,              # UTC ticks from BehaviorPC (100's of ns since midnight 1/1/0001)
+                Timestamp,              # UTC ticks from BehaviorPC
+                                        # (100's of ns since midnight 1/1/0001)
                 embeddedTimeStamp,      # Camera timestamp (Needs unclycling and conversion)
                 embeddedFrameCounter,   # Frame counter (int)
                 embeddedGPIOPinState    # GPIO pin state integer representation of 4 pins
             }
     """
     camera = assert_valid_label(camera)
-    fpath = Path(session_path).joinpath("raw_video_data", f"_iblrig_{camera}Camera.FrameData.bin")
-    assert fpath.exists(), f"{fpath}\nFile not Found: Could not find bin file for camera <{camera}>"
+    fpath = Path(session_path).joinpath("raw_video_data", f"_iblrig_{camera}Camera.frameData.bin")
+    assert fpath.exists(), f"{fpath}\nFile not Found: Could not find bin file for cam <{camera}>"
     rdata = np.fromfile(fpath, dtype=np.float64)
     assert len(rdata) % 4 == 0, "Dimension mismatch: bin file length is not mod 4"
     rows = int(len(rdata) / 4)
     data = np.reshape(rdata.astype(np.int64), (rows, 4))
-    df_dict = {
-        "Timestamp": None,
-        "embeddedTimeStamp": None,
-        "embeddedFrameCounter": None,
-        "embeddedGPIOPinState": None
-    }
+    df_dict = dict.fromkeys(
+        ["Timestamp", "embeddedTimeStamp", "embeddedFrameCounter", "embeddedGPIOPinState"]
+    )
     df = pd.DataFrame(data, columns=df_dict.keys())
+    if raw:
+        return df
 
-    df_dict["Timestamp"] = (data[:, 0] - data[0, 0]) / 10_000_000  # in seconds from start
+    df_dict["Timestamp"] = (data[:, 0] - data[0, 0]) / 10_000_000  # in seconds from first frame
     camerats = uncycle_pgts(convert_pgts(data[:, 1]))
-    df_dict["embeddedTimeStamp"] = camerats - camerats[0]  # in seconds from start
+    df_dict["embeddedTimeStamp"] = camerats - camerats[0]  # in seconds from first frame
     df_dict["embeddedFrameCounter"] = data[:, 2] - data[0, 2]  # from start
     gpio = (np.right_shift(np.tile(data[:, 3], (4, 1)).T, np.arange(31, 27, -1)) & 0x1) == 1
     df_dict["embeddedGPIOPinState"] = [np.array(x) for x in gpio.tolist()]
 
     parsed_df = pd.DataFrame.from_dict(df_dict)
-    return df if raw else parsed_df
+    return parsed_df
 
 
 def load_camera_ssv_times(session_path, camera: str):

@@ -11,5 +11,5 @@ PySocks==1.6.8
 python-osc==1.7.0
 sounddevice==0.3.13
 ibllib==1.11.0
-iblutil==1.0.0
-ONE-api==0.2.3
+iblutil>=1.0.0
+ONE-api>=0.4.0

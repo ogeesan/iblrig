@@ -13,8 +13,7 @@ class TestsRawDataLoaders(unittest.TestCase):
 
     def setUp(self):
         self.tempfile = tempfile.NamedTemporaryFile(delete=False)
-        self.bin_session_path = Path(__file__).parent.joinpath(
-            'fixtures', 'io', 'data_loaders', "_iblrig_test_mouse_2020-01-01_001")
+        self.bin_session_path = Path(__file__).parent.joinpath('fixtures', 'sessions',"_iblrig_test_mouse_2020-01-01_001")
 
     def testFlagFileRead(self):
         # empty file should return True
@@ -74,12 +73,12 @@ class TestsRawDataLoaders(unittest.TestCase):
         self.assertEqual(flags.read_flag_file(self.tempfile.name), True)
 
     def test_load_encoder_trial_info(self):
-        self.session = Path(__file__).parent.joinpath('extractors', 'data', 'session_biased_ge5')
-        data = raw.load_encoder_trial_info(self.session)
+        session = Path(__file__).parent.joinpath('fixtures', 'sessions', 'session_biased_ge5')
+        data = raw.load_encoder_trial_info(session)
         self.assertTrue(data is not None)
 
     def test_load_camera_ssv_times(self):
-        session = Path(__file__).parent.joinpath('extractors', 'data', 'session_ephys')
+        session = Path(__file__).parent.joinpath('fixtures', 'sessions', 'session_ephys')
         with self.assertRaises(ValueError):
             raw.load_camera_ssv_times(session, 'tail')
         bonsai, camera = raw.load_camera_ssv_times(session, 'body')
@@ -111,7 +110,7 @@ class TestsRawDataLoaders(unittest.TestCase):
         Embedded frame data comes from 057e25ef-3f80-42e8-aa9f-e259df8bc9ad, left camera
         :return:
         """
-        session = Path(__file__).parent.joinpath('extractors', 'data', 'session_ephys')
+        session = Path(__file__).parent.joinpath('fixtures', 'sessions', 'session_ephys')
         gpio = raw.load_camera_gpio(session, 'body', as_dicts=True)
         self.assertEqual(len(gpio), 4)  # One dict per pin
         *gpio_, gpio_4 = gpio  # Check last dict; pin 4 should have one pulse
@@ -150,7 +149,7 @@ class TestsRawDataLoaders(unittest.TestCase):
         Embedded frame data comes from 057e25ef-3f80-42e8-aa9f-e259df8bc9ad, left camera
         :return:
         """
-        session = Path(__file__).parent.joinpath('extractors', 'data', 'session_ephys')
+        session = Path(__file__).parent.joinpath('fixtures', 'sessions', 'session_ephys')
         count = raw.load_camera_frame_count(session, 'body', raw=False)
         np.testing.assert_array_equal(count, np.arange(510, dtype=np.int32))
         self.assertEqual(count.dtype, int)
@@ -164,7 +163,7 @@ class TestsRawDataLoaders(unittest.TestCase):
         self.assertIsNone(raw.load_camera_frame_count(session, 'right'))
 
     def test_load_embedded_frame_data(self):
-        session = Path(__file__).parent.joinpath('extractors', 'data', 'session_ephys')
+        session = Path(__file__).parent.joinpath('fixtures', 'sessions', 'session_ephys')
         count, gpio = raw.load_embedded_frame_data(session, 'body')
         self.assertEqual(count[0], 0)
         self.assertIsInstance(gpio[-1], dict)
@@ -174,11 +173,11 @@ class TestsRawDataLoaders(unittest.TestCase):
 
     def test_load_camera_FrameData(self):
         import pandas as pd
-        fd_raw = raw.load_camera_FrameData(self.bin_session_path, raw=True)
-        fd = raw.load_camera_FrameData(self.bin_session_path)
+        fd_raw = raw.load_camera_frameData(self.bin_session_path, raw=True)
+        fd = raw.load_camera_frameData(self.bin_session_path)
         # Wrong camera input file not found
         with self.assertRaises(AssertionError):
-            raw.load_camera_FrameData(self.bin_session_path, camera='right')
+            raw.load_camera_frameData(self.bin_session_path, camera='right')
         # Shape
         self.assertTrue(fd.shape[1] == 4)
         self.assertTrue(fd_raw.shape[1] == 4)
@@ -270,7 +269,6 @@ class TestsMisc(unittest.TestCase):
         misc.delete_empty_folders(self.tempdir, dry=False, recursive=True)
         pos = [x.exists() for x in self.subdirs]
         self.assertTrue(all([x == y for x, y in zip(pos, pos_expected)]))
-
 
 
 if __name__ == "__main__":

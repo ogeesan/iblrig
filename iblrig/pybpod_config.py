@@ -25,7 +25,7 @@ Return: None or json dict
 import json
 from pathlib import Path
 
-from oneibl.one import ONE
+from one.api import ONE
 from pybpodgui_api.models.project import Project
 
 import iblrig.path_helper as ph
