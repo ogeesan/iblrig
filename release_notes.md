@@ -26,6 +26,10 @@
 * Added bonsai.show_stim method to BpodMessageCreator obj
 * Deprecated RECORD_VIDEO "knob"
 * Exposed rate of passive stimulation workflow defaults to 0.1
+* Refactored update with _update, and git module
+* Migrated to ONE2
+* Migrated iblrig exclusive functions(raw_data_loaders, transfer_... etc) from ibllib.
+* Plus tests
 
 ## **Release Notes 6.4.2**
 
