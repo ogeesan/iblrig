@@ -14,5 +14,6 @@ Bonsai/
 bin
 obj
 run.bat
+visual_stim/bonsaitest/
 
 XDG_CACHE_HOME/
