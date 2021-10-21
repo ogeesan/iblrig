@@ -924,14 +924,14 @@
                     </PropertyMappings>
                   </Expression>
                   <Expression xsi:type="IncludeWorkflow" Path="BonVision:Primitives.DrawGratings.bonsai">
-                    <LocationX>-57.2549934</LocationX>
+                    <LocationX>35</LocationX>
                     <LocationY>0</LocationY>
                     <Angle>0</Angle>
                     <SpatialFrequency>0.1</SpatialFrequency>
                     <TemporalFrequency>0</TemporalFrequency>
-                    <Phase>592.8626</Phase>
+                    <Phase>2828.20483</Phase>
                     <SquareWave>false</SquareWave>
-                    <Contrast>1</Contrast>
+                    <Contrast>0.5</Contrast>
                     <Radius>0.445389926</Radius>
                     <Aperture>0.445389926</Aperture>
                     <Opacity>1</Opacity>
@@ -1066,6 +1066,88 @@
                   </Expression>
                   <Expression xsi:type="BehaviorSubject">
                     <Name>Encoder</Name>
+                  </Expression>
+                  <Expression xsi:type="GroupWorkflow">
+                    <Workflow>
+                      <Nodes>
+                        <Expression xsi:type="SubscribeSubject">
+                          <Name>BpodEvent</Name>
+                        </Expression>
+                        <Expression xsi:type="Condition">
+                          <Name>13: Reverse</Name>
+                          <Description />
+                          <Workflow>
+                            <Nodes>
+                              <Expression xsi:type="WorkflowInput">
+                                <Name>Source1</Name>
+                              </Expression>
+                              <Expression xsi:type="Equal">
+                                <Operand xsi:type="FloatProperty">
+                                  <Value>13</Value>
+                                </Operand>
+                              </Expression>
+                              <Expression xsi:type="WorkflowOutput" />
+                            </Nodes>
+                            <Edges>
+                              <Edge From="0" To="1" Label="Source1" />
+                              <Edge From="1" To="2" Label="Source1" />
+                            </Edges>
+                          </Workflow>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="FloatProperty">
+                            <Value>-1</Value>
+                          </Combinator>
+                        </Expression>
+                        <Expression xsi:type="Condition">
+                          <Name>14: Normal</Name>
+                          <Description />
+                          <Workflow>
+                            <Nodes>
+                              <Expression xsi:type="WorkflowInput">
+                                <Name>Source1</Name>
+                              </Expression>
+                              <Expression xsi:type="Equal">
+                                <Operand xsi:type="FloatProperty">
+                                  <Value>14</Value>
+                                </Operand>
+                              </Expression>
+                              <Expression xsi:type="WorkflowOutput" />
+                            </Nodes>
+                            <Edges>
+                              <Edge From="0" To="1" Label="Source1" />
+                              <Edge From="1" To="2" Label="Source1" />
+                            </Edges>
+                          </Workflow>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="FloatProperty">
+                            <Value>1</Value>
+                          </Combinator>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="FloatProperty">
+                            <Value>1</Value>
+                          </Combinator>
+                        </Expression>
+                        <Expression xsi:type="Combinator">
+                          <Combinator xsi:type="rx:Merge" />
+                        </Expression>
+                        <Expression xsi:type="PublishSubject">
+                          <Name>DirectionSwitch</Name>
+                        </Expression>
+                      </Nodes>
+                      <Edges>
+                        <Edge From="0" To="1" Label="Source1" />
+                        <Edge From="0" To="3" Label="Source1" />
+                        <Edge From="1" To="2" Label="Source1" />
+                        <Edge From="2" To="6" Label="Source1" />
+                        <Edge From="3" To="4" Label="Source1" />
+                        <Edge From="4" To="6" Label="Source2" />
+                        <Edge From="5" To="6" Label="Source3" />
+                        <Edge From="6" To="7" Label="Source1" />
+                      </Edges>
+                    </Workflow>
                   </Expression>
                 </Nodes>
                 <Edges>
@@ -1553,15 +1635,15 @@ Value = whhel_radius for wheel_perim</Description>
                     <Name>DirectionSwitch</Name>
                   </Expression>
                   <Expression xsi:type="Combinator">
-                    <Combinator xsi:type="rx:Sample" />
-                  </Expression>
-                  <Expression xsi:type="Combinator">
                     <Combinator xsi:type="FloatProperty">
                       <Value>1</Value>
                     </Combinator>
                   </Expression>
                   <Expression xsi:type="Combinator">
                     <Combinator xsi:type="rx:Merge" />
+                  </Expression>
+                  <Expression xsi:type="Combinator">
+                    <Combinator xsi:type="rx:Sample" />
                   </Expression>
                   <Expression xsi:type="Combinator">
                     <Combinator xsi:type="rx:CombineLatest" />
@@ -1586,86 +1668,10 @@ Value = whhel_radius for wheel_perim</Description>
                   <Expression xsi:type="MulticastSubject">
                     <Name>UpdateSyncSquare</Name>
                   </Expression>
-                  <Expression xsi:type="GroupWorkflow">
-                    <Workflow>
-                      <Nodes>
-                        <Expression xsi:type="SubscribeSubject">
-                          <Name>BpodEvent</Name>
-                        </Expression>
-                        <Expression xsi:type="Condition">
-                          <Name>13: Reverse</Name>
-                          <Description />
-                          <Workflow>
-                            <Nodes>
-                              <Expression xsi:type="WorkflowInput">
-                                <Name>Source1</Name>
-                              </Expression>
-                              <Expression xsi:type="Equal">
-                                <Operand xsi:type="FloatProperty">
-                                  <Value>13</Value>
-                                </Operand>
-                              </Expression>
-                              <Expression xsi:type="WorkflowOutput" />
-                            </Nodes>
-                            <Edges>
-                              <Edge From="0" To="1" Label="Source1" />
-                              <Edge From="1" To="2" Label="Source1" />
-                            </Edges>
-                          </Workflow>
-                        </Expression>
-                        <Expression xsi:type="Combinator">
-                          <Combinator xsi:type="FloatProperty">
-                            <Value>-1</Value>
-                          </Combinator>
-                        </Expression>
-                        <Expression xsi:type="Condition">
-                          <Name>14: Normal</Name>
-                          <Description />
-                          <Workflow>
-                            <Nodes>
-                              <Expression xsi:type="WorkflowInput">
-                                <Name>Source1</Name>
-                              </Expression>
-                              <Expression xsi:type="Equal">
-                                <Operand xsi:type="FloatProperty">
-                                  <Value>14</Value>
-                                </Operand>
-                              </Expression>
-                              <Expression xsi:type="WorkflowOutput" />
-                            </Nodes>
-                            <Edges>
-                              <Edge From="0" To="1" Label="Source1" />
-                              <Edge From="1" To="2" Label="Source1" />
-                            </Edges>
-                          </Workflow>
-                        </Expression>
-                        <Expression xsi:type="Combinator">
-                          <Combinator xsi:type="FloatProperty">
-                            <Value>1</Value>
-                          </Combinator>
-                        </Expression>
-                        <Expression xsi:type="Combinator">
-                          <Combinator xsi:type="rx:Merge" />
-                        </Expression>
-                        <Expression xsi:type="PublishSubject">
-                          <Name>DirectionSwitch</Name>
-                        </Expression>
-                      </Nodes>
-                      <Edges>
-                        <Edge From="0" To="1" Label="Source1" />
-                        <Edge From="0" To="3" Label="Source1" />
-                        <Edge From="1" To="2" Label="Source1" />
-                        <Edge From="2" To="5" Label="Source1" />
-                        <Edge From="3" To="4" Label="Source1" />
-                        <Edge From="4" To="5" Label="Source2" />
-                        <Edge From="5" To="6" Label="Source1" />
-                      </Edges>
-                    </Workflow>
-                  </Expression>
                 </Nodes>
                 <Edges>
                   <Edge From="1" To="2" Label="Source2" />
-                  <Edge From="1" To="19" Label="Source2" />
+                  <Edge From="1" To="21" Label="Source2" />
                   <Edge From="2" To="22" Label="Source1" />
                   <Edge From="2" To="23" Label="Source2" />
                   <Edge From="3" To="22" Label="Source2" />
@@ -1685,9 +1691,9 @@ Value = whhel_radius for wheel_perim</Description>
                   <Edge From="15" To="16" Label="Source1" />
                   <Edge From="16" To="17" Label="Source2" />
                   <Edge From="17" To="27" Label="Source2" />
-                  <Edge From="18" To="19" Label="Source1" />
-                  <Edge From="19" To="21" Label="Source1" />
-                  <Edge From="20" To="21" Label="Source2" />
+                  <Edge From="18" To="20" Label="Source1" />
+                  <Edge From="19" To="20" Label="Source2" />
+                  <Edge From="20" To="21" Label="Source1" />
                   <Edge From="21" To="22" Label="Source3" />
                   <Edge From="22" To="23" Label="Source1" />
                   <Edge From="23" To="24" Label="Source1" />
@@ -1736,7 +1742,6 @@ Value = whhel_radius for wheel_perim</Description>
               </Workflow>
             </Expression>
             <Expression xsi:type="SelectMany">
-              <Name>FreezeHalf</Name>
               <Workflow>
                 <Nodes>
                   <Expression xsi:type="Disable">
@@ -1867,9 +1872,9 @@ Value = whhel_radius for wheel_perim</Description>
                   <Edge From="12" To="13" Label="Source2" />
                   <Edge From="13" To="14" Label="Source1" />
                   <Edge From="14" To="15" Label="Source1" />
-                  <Edge From="14" To="19" Label="Source1" />
                   <Edge From="15" To="16" Label="Source1" />
                   <Edge From="15" To="18" Label="Source1" />
+                  <Edge From="15" To="19" Label="Source1" />
                   <Edge From="16" To="17" Label="Source1" />
                 </Edges>
               </Workflow>
@@ -1939,7 +1944,7 @@ _iblrig_micData.raw.wav
                     <Property Name="FileName" DisplayName="FileNameTrialInfo" />
                   </Expression>
                   <Expression xsi:type="io:CsvWriter">
-                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211019_123851\_iblrig_encoderTrialInfo.raw.ssv</io:FileName>
+                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211021_103354\_iblrig_encoderTrialInfo.raw.ssv</io:FileName>
                     <io:Append>false</io:Append>
                     <io:Overwrite>true</io:Overwrite>
                     <io:Suffix>None</io:Suffix>
@@ -1956,7 +1961,7 @@ _iblrig_micData.raw.wav
                     <Property Name="FileName" DisplayName="FileNameEvents" />
                   </Expression>
                   <Expression xsi:type="io:CsvWriter">
-                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211019_123851\_iblrig_encoderEvents.raw.ssv</io:FileName>
+                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211021_103354\_iblrig_encoderEvents.raw.ssv</io:FileName>
                     <io:Append>false</io:Append>
                     <io:Overwrite>true</io:Overwrite>
                     <io:Suffix>None</io:Suffix>
@@ -1970,7 +1975,7 @@ _iblrig_micData.raw.wav
                     <Property Name="FileName" DisplayName="FileNamePositions" />
                   </Expression>
                   <Expression xsi:type="io:CsvWriter">
-                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211019_123851\_iblrig_encoderPositions.raw.ssw</io:FileName>
+                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211021_103354\_iblrig_encoderPositions.raw.ssw</io:FileName>
                     <io:Append>false</io:Append>
                     <io:Overwrite>true</io:Overwrite>
                     <io:Suffix>None</io:Suffix>
@@ -1993,7 +1998,7 @@ _iblrig_micData.raw.wav
                     <Combinator xsi:type="rx:Timestamp" />
                   </Expression>
                   <Expression xsi:type="io:CsvWriter">
-                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211019_123851\_iblrig_stimPositionScreen.raw.csv</io:FileName>
+                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211021_103354\_iblrig_stimPositionScreen.raw.csv</io:FileName>
                     <io:Append>false</io:Append>
                     <io:Overwrite>true</io:Overwrite>
                     <io:Suffix>None</io:Suffix>
@@ -2009,7 +2014,7 @@ _iblrig_micData.raw.wav
                     <Combinator xsi:type="rx:Timestamp" />
                   </Expression>
                   <Expression xsi:type="io:CsvWriter">
-                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211019_123851\_iblrig_syncSquareUpdate.raw.csv</io:FileName>
+                    <io:FileName>C:\George\bonsai_data\FakeSubject\FakeSubject_GS_IBL_20211021_103354\_iblrig_syncSquareUpdate.raw.csv</io:FileName>
                     <io:Append>false</io:Append>
                     <io:Overwrite>true</io:Overwrite>
                     <io:Suffix>None</io:Suffix>
